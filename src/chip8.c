@@ -22,7 +22,7 @@ unsigned short stack[STACK_SIZE];
 unsigned short sp;  // stack pointer
 
 // Display
-unsigned char display[DISPLAY_RES_X * DISPLAY_RES_Y];
+unsigned char chip8_display[DISPLAY_RES_X * DISPLAY_RES_Y];
 
 // Timers
 unsigned char delay_timer;
@@ -72,7 +72,7 @@ void decode_and_exec(unsigned short instruction) {
     switch (first_nibble) {
         case 0x0:  // 00E0: clear display
             // TEMP: pretend no other 0x0 instructions exist
-            memset(display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
+            memset(chip8_display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
             break;
         case 0x1:  // 1NNN: jump
             pc = NNN;
@@ -111,10 +111,10 @@ void chip8_init() {
     delay_timer = 0;
     sound_timer = 0;
 
-    memset(memory,  0, TOTAL_MEMORY);
-    memset(display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
-    memset(stack,   0, STACK_SIZE);
-    memset(V,       0, NUM_GP_REGISTERS);
+    memset(memory,        0, TOTAL_MEMORY);
+    memset(chip8_display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
+    memset(stack,         0, STACK_SIZE);
+    memset(V,             0, NUM_GP_REGISTERS);
 
     for (int i = 0; i < sizeof(fonts); i++) {
         memory[FONT_START_ADDR + i] = fonts[i];
