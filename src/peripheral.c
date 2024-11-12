@@ -9,20 +9,23 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 
 char last_input;
+char draw_scale;
 char quit_flag;
 
-int sdl_init(void);
+int sdl_init(char);
 void sdl_close(void);
-
 void sdl_input_step(void);
 void sdl_draw_step(unsigned char *);
 
-int sdl_init() {
+int sdl_init(char scale) {
+    draw_scale = scale;
+
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
         return FAILURE;
     }
-    window = SDL_CreateWindow("CHIP-8 Window: Hello World", 100, 100, 64, 32, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("CHIP-8 Emulator", SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED, 64 * scale, 32 * scale, SDL_WINDOW_SHOWN);
     if (!window) {
         fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
         return FAILURE;
@@ -71,11 +74,11 @@ void sdl_draw_step(unsigned char * display) {
     for (x = 0; x < 64; x++) {
         for (y = 0; y < 32; y++) {
             if (display[(y * 64) + x] == 1) {
-                rect.x = x;
-                rect.y = y;
-                rect.w = 1;
-                rect.h = 1;
-                SDL_RenderDrawRect(renderer, &rect);
+                rect.x = x * draw_scale;
+                rect.y = y * draw_scale;
+                rect.w = draw_scale;
+                rect.h = draw_scale;
+                SDL_RenderFillRect(renderer, &rect);
             }
         }
     }
