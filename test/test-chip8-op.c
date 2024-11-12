@@ -100,6 +100,21 @@ void test_00E0() {
     printf("[PASS] test_00E0\n");
 }
 
+// Test: Return from subroutine
+void test_00EE() {
+    // 1. Simple return
+    chip8_init();
+    sp = 1;
+    stack[0] = 0x400;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xEE;
+    chip8_step();
+    assert(pc == 0x400);
+    assert(sp == 0);
+
+    printf("[PASS] test_00EE\n");
+}
+
 // Test: Jump to NNN
 void test_1NNN() {
     // 1. Jump to current address/start address
@@ -124,6 +139,135 @@ void test_1NNN() {
     assert(pc == 0x95b);
 
     printf("[PASS] test_1NNN\n");
+}
+
+// Test: Call subroutine
+void test_2NNN() {
+    // 1. Simple call
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x2A;
+    memory[PROG_START_ADDR + 1] = 0x00;
+    chip8_step();
+    assert(pc == 0xA00);
+    assert(sp == 1);
+    assert(stack[0] == 0x202);
+
+    // 2. Call to another call
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x24;
+    memory[PROG_START_ADDR + 1] = 0x00;
+    memory[0x0400] = 0x27;
+    memory[0x0401] = 0xFF;
+    chip8_step();
+    assert(pc == 0x400);
+    assert(sp == 1);
+    assert(stack[0] == 0x202);
+    chip8_step();
+    assert(pc == 0x7FF);
+    assert(sp == 2);
+    assert(stack[0] == 0x202);
+    assert(stack[1] == 0x402);
+
+    printf("[PASS] test_2NNN\n");
+}
+
+// Test: if (VX == NN) skip 1 instruction
+void test_3XNN() {
+    // 1. true/skip: V0 == 0, where V0 = 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x30;
+    memory[PROG_START_ADDR + 1] = 0x00;
+    chip8_step();
+    assert(pc == 0x204);
+
+    // 2. false/no skip: V0 == 1 where V0 = 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x30;
+    memory[PROG_START_ADDR + 1] = 0x01;
+    chip8_step();
+    assert(pc == 0x202);
+
+    // 3. true/skip: VB == 0xFF, where VB = 0xFF
+    chip8_init();
+    V[0xB] = 0xFF;
+    memory[PROG_START_ADDR]     = 0x3B;
+    memory[PROG_START_ADDR + 1] = 0xFF;
+    chip8_step();
+    assert(pc == 0x204);
+
+    printf("[PASS] test_3XNN\n");
+}
+
+// Test: if (VX != NN) skip 1 instruction
+void test_4XNN() {
+    // 2. true/skip: V0 != 1 where V0 = 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x40;
+    memory[PROG_START_ADDR + 1] = 0x01;
+    chip8_step();
+    assert(pc == 0x204);
+
+    // 1. false/no skip: V0 != 0, where V0 = 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x40;
+    memory[PROG_START_ADDR + 1] = 0x00;
+    chip8_step();
+    assert(pc == 0x202);
+
+    // 3. true/skip: VC != 0xA1, where VB = 0xDD
+    chip8_init();
+    V[0xC] = 0xDD;
+    memory[PROG_START_ADDR]     = 0x4C;
+    memory[PROG_START_ADDR + 1] = 0xA1;
+    chip8_step();
+    assert(pc == 0x204);
+
+    printf("[PASS] test_4XNN\n");
+}
+
+// Test: if (VX == VY) skip 1 instruction
+void test_5XY0() {
+    // 1. Test on self. true/skip: V0 == V0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x50;
+    memory[PROG_START_ADDR + 1] = 0x00;
+    chip8_step();
+    assert(pc == 0x204);
+
+    // 2. true/skip: V0 == V1 where V0 & V1 = 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x50;
+    memory[PROG_START_ADDR + 1] = 0x10;
+    chip8_step();
+    assert(pc == 0x204);
+
+    // 3. false/no skip: V0 == V1 where V0 = 0 & V1 = 1
+    chip8_init();
+    V[0x1] = 1;
+    memory[PROG_START_ADDR]     = 0x50;
+    memory[PROG_START_ADDR + 1] = 0x10;
+    chip8_step();
+    assert(pc == 0x202);
+
+    // 4. true/skip: V5 == V2 where V5 = 1 & V1 = 1
+    chip8_init();
+    V[0x2] = 1;
+    V[0x5] = 1;
+    memory[PROG_START_ADDR]     = 0x52;
+    memory[PROG_START_ADDR + 1] = 0x50;
+    chip8_step();
+    assert(pc == 0x204);
+
+    // 5. false/no skip: VA == VB where VA = 0D & VB = A1
+    chip8_init();
+    V[0xA] = 0x0D;
+    V[0xB] = 0xA1;
+    memory[PROG_START_ADDR]     = 0x5A;
+    memory[PROG_START_ADDR + 1] = 0xB0;
+    chip8_step();
+    assert(pc == 0x202);
+
+    printf("[PASS] test_5XY0\n");
 }
 
 // Test: Set VX
@@ -236,6 +380,44 @@ void test_7XNN() {
     printf("[PASS] test_7XNN\n");
 }
 
+// Test: if (VX != VY) skip 1 instruction
+void test_9XY0() {
+    // 1. false/no skip: V0 != V1 where V0 & V1 = 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x90;
+    memory[PROG_START_ADDR + 1] = 0x10;
+    chip8_step();
+    assert(pc == 0x202);
+
+    // 2. true/skip: V0 != V1 where V0 = 0 & V1 = 1
+    chip8_init();
+    V[0x1] = 1;
+    memory[PROG_START_ADDR]     = 0x90;
+    memory[PROG_START_ADDR + 1] = 0x10;
+    chip8_step();
+    assert(pc == 0x204);
+
+    // 3. false/no skip: V5 != V2 where V5 = 1 & V1 = 1
+    chip8_init();
+    V[0x2] = 1;
+    V[0x5] = 1;
+    memory[PROG_START_ADDR]     = 0x92;
+    memory[PROG_START_ADDR + 1] = 0x50;
+    chip8_step();
+    assert(pc == 0x202);
+
+    // 4. true/skip: VA != VB where VA = 0D & VB = A1
+    chip8_init();
+    V[0xA] = 0x0D;
+    V[0xB] = 0xA1;
+    memory[PROG_START_ADDR]     = 0x9A;
+    memory[PROG_START_ADDR + 1] = 0xB0;
+    chip8_step();
+    assert(pc == 0x204);
+
+    printf("[PASS] test_9XY0\n");
+}
+
 // Test: Set index register
 void test_ANNN() {
     // 1. Set to 0 (no change)
@@ -268,9 +450,15 @@ int main(void) {
 
     printf("\n* Beginning chip-8 opcode tests\n");
     test_00E0();  // Clear screen
+    test_00EE();  // Return from subroutine
     test_1NNN();  // Jump
+    test_2NNN();  // Call subroutine
+    test_3XNN();  // if VX == NN skip 1 instruction
+    test_4XNN();  // if VX != NN skip 1 instruction
+    test_5XY0();  // if VX == VY skip 1 instruction
     test_6XNN();  // Set register
     test_7XNN();  // Add (no carry) to register
+    test_9XY0();  // if VX != VY skip 1 instruction
     test_ANNN();  // Set index
 
     printf("\n* All tests passed\n");

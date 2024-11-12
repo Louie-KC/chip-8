@@ -76,24 +76,79 @@ void decode_and_exec(unsigned short instruction) {
     unsigned short di;
 
     switch (first_nibble) {
-        case 0x0:  // 00E0: clear display
-            // TEMP: pretend no other 0x0 instructions exist
-            memset(chip8_display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
-            chip8_display_updated = 1;
+        case 0x0:
+            switch (instruction) {
+                // 00E0: clear display
+                case 0x00E0:
+                    memset(chip8_display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
+                    chip8_display_updated = 1;
+                    break;
+
+                // 00EE: subroutine return
+                case 0x00EE:
+                    pc = stack[--sp];
+                    break;
+                default:
+                    printf("[INFO] decode_and_exec: Unrecognised instruction '%x'\n", instruction);
+            }
             break;
-        case 0x1:  // 1NNN: jump
+        
+        // 1NNN: jump
+        case 0x1:
             pc = NNN;
             break;
-        case 0x6:  // 6XNN: set register V[X]
+
+        // 2NNN: subroutine call
+        case 0x2:
+            stack[sp++] = pc;  // Push instruction address to return to onto stack
+            pc = NNN;          // Jump to subroutine
+            break;
+
+        // 3XNN: skip 1 instruction if VX == NN
+        case 0x3:
+            if (V[X] == NN) {
+                pc += 2;
+            }
+            break;
+
+        // 4XNN: skip 1 instruction if VX != NN
+        case 0x4:
+            if (V[X] != NN) {
+                pc += 2;
+            }
+            break;
+
+        // 5XY0: skip 1 instruction if VX == VY
+        case 0x5:
+            if (V[X] == V[Y]) {
+                pc += 2;
+            }
+            break;
+        
+        // 6XNN: set register V[X]
+        case 0x6:
             V[X] = NN;
             break;
-        case 0x7:  // 7XNN: add to register V[X]
+        
+        // 7XNN: add to register V[X]
+        case 0x7:
             V[X] += NN;
             break;
-        case 0xA:  // ANNN: set index register
+
+        // 9XY0: skip 1 instruction if VX != VY
+        case 0x9:
+            if (V[X] != V[Y]) {
+                pc += 2;
+            }
+            break;
+
+        // ANNN: set index register
+        case 0xA:
             I = NNN;
             break;
-        case 0xD:  // DXYN: display
+        
+        // DXYN: display
+        case 0xD:
             // The display positions should wrap. The sprite itself should not.
             dx = V[X] % DISPLAY_RES_X;
             dy = V[Y] % DISPLAY_RES_Y;
@@ -114,6 +169,7 @@ void decode_and_exec(unsigned short instruction) {
                 }
             }
             break;
+
         default:
             printf("[INFO] decode_and_exec: Unrecognised instruction '%x'\n", instruction);
     }
