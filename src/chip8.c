@@ -121,20 +121,40 @@ void chip8_init() {
     }
 }
 
-int chip8_load_program(char *prog_path) {
-    unsigned short bytes_read;
+int chip8_load_rom(char *rom_path) {
+    unsigned short file_bytes;
     unsigned char buffer[TOTAL_MEMORY - PROG_START_ADDR] = {0};
-    FILE *f = fopen(prog_path, "rb");
+
+    FILE *f = fopen(rom_path, "rb");
     if (!f) {
-        fprintf(stdout, "[FAIL] chip8_load_program: Failed to open '%s'\n", prog_path);
+        printf("[FAIL] chip8_load_rom: Failed to open '%s'\n", rom_path);
         return -1;
     }
-    bytes_read = fread(buffer, TOTAL_MEMORY - PROG_START_ADDR, 1, f);
-    for (int i = 0; i < bytes_read; i++) {
+    
+    // Determine file size
+    fseek(f, 0, SEEK_END);
+    file_bytes = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    // Ensure fits within chip-8 memory
+    if (file_bytes > TOTAL_MEMORY - PROG_START_ADDR) {
+        printf("[ERROR] chip8_load_rom: File '%s' too large (%d)\n", rom_path, file_bytes);
+        fclose(f);
+        return -1;
+    }
+
+    if (fread(buffer, file_bytes, 1, f) == 0) {
+        printf("[FAIL] chip8_load_rom: Failed to read '%s'\n", rom_path);
+        fclose(f);
+        return -1;
+    }
+
+    // Copy read bytes to chip-8 memory
+    for (int i = 0; i < file_bytes; i++) {
         memory[PROG_START_ADDR + i] = buffer[i];
     }
-    fclose(f);
 
+    fclose(f);
     return 0;
 }
 
