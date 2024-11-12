@@ -33,7 +33,10 @@ int main(int argc, char *argv[]) {
     while (!quit_flag) {
         sdl_input_step();
         chip8_step();
-        sdl_draw_step(chip8_display);
+        if (chip8_display_updated) {
+            sdl_draw_step(chip8_display);
+            chip8_display_updated = 0;
+        }
     }
 
     sdl_close();

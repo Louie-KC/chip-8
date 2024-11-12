@@ -9,6 +9,9 @@
 #define DISPLAY_RES_Y 32
 #define STACK_SIZE 16
 
+// Flags
+unsigned char chip8_display_updated;
+
 // Memory
 unsigned char memory[TOTAL_MEMORY];
 
@@ -56,7 +59,10 @@ unsigned short fetch() {
 }
 
 void decode_and_exec(unsigned short instruction) {
-    unsigned char first_nibble  = instruction & 0xF000;
+    unsigned char first_nibble  = (instruction & 0xF000) >> 12;
+
+    // printf("decode instruction:  %04x\n", instruction);
+    // printf("decode first_nibble: %x\n", first_nibble);
 
     unsigned char  X   = (instruction & 0x0F00) >> 8;
     unsigned char  Y   = (instruction & 0x00F0) >> 4;
@@ -65,14 +71,15 @@ void decode_and_exec(unsigned short instruction) {
     unsigned short NNN = (instruction & 0x0FFF);
 
     // display
-    unsigned char dx;
-    unsigned char dy;
-    unsigned char di;
+    unsigned short dx;
+    unsigned short dy;
+    unsigned short di;
 
     switch (first_nibble) {
         case 0x0:  // 00E0: clear display
             // TEMP: pretend no other 0x0 instructions exist
             memset(chip8_display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
+            chip8_display_updated = 1;
             break;
         case 0x1:  // 1NNN: jump
             pc = NNN;
@@ -90,13 +97,22 @@ void decode_and_exec(unsigned short instruction) {
             // The display positions should wrap. The sprite itself should not.
             dx = V[X] % DISPLAY_RES_X;
             dy = V[Y] % DISPLAY_RES_Y;
-            di = dy * DISPLAY_RES_Y + dx;
             V[0xF] = 0;
-
-            // TODO
-            // Note: Fonts are 5 pixels tall (each row of 5 in the fonts array)
-            //       and 4 pixels wide (half bytes in fonts array bytes/values)
-
+            chip8_display_updated = 1;
+            for (int row = 0; row < N && dy + row < DISPLAY_RES_Y; row++) {
+                unsigned char sprite_data = memory[I + row];
+                for (int col = 0; col < 8 && dx + col < DISPLAY_RES_X; col++) {
+                    // Check each bit in a left to right order
+                    if ((sprite_data & (0b10000000 >> col)) != 0) {
+                        di = (((dy + row) * DISPLAY_RES_X) + dx + col);
+                        if (chip8_display[di] == 1) {
+                            V[0xF] = 1;
+                        }
+                        // Flip the display pixels bit
+                        chip8_display[di] ^= 1;
+                    }
+                }
+            }
             break;
         default:
             printf("[INFO] decode_and_exec: Unrecognised instruction '%x'\n", instruction);
@@ -119,6 +135,8 @@ void chip8_init() {
     for (int i = 0; i < sizeof(fonts); i++) {
         memory[FONT_START_ADDR + i] = fonts[i];
     }
+
+    chip8_display_updated = 0;
 }
 
 int chip8_load_rom(char *rom_path) {
