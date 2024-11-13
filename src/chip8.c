@@ -179,11 +179,11 @@ void decode_and_exec(unsigned short instruction) {
                     V[X] = arithmetic_result;
                     break;
                 
-                // 8XY6: Left shift. VX = VX << 1 (ambiguous VY)
+                // 8XY6: Right shift. VX = VX >> 1 (ambiguous VY)
                 case 0x6:
-                    V[0xF] = (V[X] & 0b10000000) >> 7;
+                    V[0xF] = V[X] & 0b00000001;
                     // V[Y] = V[X]; // Ambiguous
-                    V[X] = V[X] << 1;
+                    V[X] = V[X] >> 1;
                     break;
                 
                 // 8XY7: subtract V[X] = V[Y] - V[X] w/ underflow detection
@@ -196,11 +196,11 @@ void decode_and_exec(unsigned short instruction) {
                     V[X] = arithmetic_result;
                     break;
                 
-                // 8XYE: Right shift. VX = VX >> 1 (ambiguous VY)
+                // 8XYE: Left shift. VX = VX << 1 (ambiguous VY)
                 case 0xE:
-                    V[0xF] = V[X] & 0b00000001;
+                    V[0xF] = (V[X] & 0b10000000) >> 7;
                     // V[Y] = V[X]; // Ambiguous
-                    V[X] = V[X] >> 1;
+                    V[X] = V[X] << 1;
                     break;
                 
                 default:

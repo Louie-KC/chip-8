@@ -607,17 +607,17 @@ void test_8XY5() {
     printf("[PASS] test_8XY5\n");
 }
 
-// Test: Left shift 1. VX = VX << 1. Ambiguous instruction
+// Test: Right shift 1. VX = VX >> 1. Ambiguous instruction
 void test_8XY6() {
     // 1.
     chip8_init();
-    V[0x0] = 0b01010101;
+    V[0x0] = 0b10101010;
     V[0x1] = 0b00000000;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x16;
     chip8_step();
-    assert(V[0x0] == 0b10101010);
-    // assert(V[0x1] == 0b01010101);  // Ambiguous
+    assert(V[0x0] == 0b01010101);
+    // assert(V[0x1] == 0b10101010);  // Ambiguous
     assert(V[0xF] == 0);  // 0 was shifted out of the register
     
     // 2.
@@ -627,7 +627,7 @@ void test_8XY6() {
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x16;
     chip8_step();
-    assert(V[0x0] == 0b11111110);
+    assert(V[0x0] == 0b01111111);
     // assert(V[0x1] == 0b11111111);  // Ambiguous
     assert(V[0xF] == 1);  // 1 was shifted out of the register
 
@@ -661,16 +661,16 @@ void test_8XY7() {
     printf("[PASS] test_8XY7\n");
 }
 
-// Test: Right shift 1. VX = VX >> 1. Ambiguous instruction
+// Test: Left shift 1. VX = VX << 1. Ambiguous instruction
 void test_8XYE() {
     // 1.
     chip8_init();
-    V[0x0] = 0b10101010;
+    V[0x0] = 0b01010101;
     V[0x1] = 0b00000000;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x1E;
     chip8_step();
-    assert(V[0x0] == 0b01010101);
+    assert(V[0x0] == 0b10101010);
     // assert(V[0x1] == 0b01010101);  // Ambiguous
     assert(V[0xF] == 0);  // 0 was shifted out of the register
     
@@ -681,7 +681,7 @@ void test_8XYE() {
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x1E;
     chip8_step();
-    assert(V[0x0] == 0b01111111);
+    assert(V[0x0] == 0b11111110);
     // assert(V[0x1] == 0b11111111);  // Ambiguous
     assert(V[0xF] == 1);  // 1 was shifted out of the register
 
@@ -772,9 +772,9 @@ int main(void) {
     test_8XY3();  // Logical XOR
     test_8XY4();  // Add VX = VX + VY
     test_8XY5();  // Subtract VX = VX - VY (with carry flag)
-    test_8XY6();  // Left shift (ambiguous instruction)
+    test_8XY6();  // Right shift (ambiguous instruction)
     test_8XY7();  // Subtract VX = VY - VX (with carry flag)
-    test_8XYE();  // Right shift (ambiguous instruction)
+    test_8XYE();  // Left shift (ambiguous instruction)
     test_9XY0();  // if VX != VY skip 1 instruction
     test_ANNN();  // Set index
 
