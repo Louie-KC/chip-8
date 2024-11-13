@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define TOTAL_MEMORY 0x1000    // 4096
@@ -218,6 +219,16 @@ void decode_and_exec(unsigned short instruction) {
         // ANNN: set index register
         case 0xA:
             I = NNN;
+            break;
+
+        // BNNN: jump PC to V0 + NNN (ambiguous, modern BXNN: PC = XNN + VX)
+        case 0xB:
+            pc = V[0x0] + NNN;
+            break;
+
+        // CXNN: store random number (ANDed with NN) in VX
+        case 0xC:
+            V[X] = (rand() & NN);
             break;
         
         // DXYN: display

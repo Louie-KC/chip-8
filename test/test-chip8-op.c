@@ -752,6 +752,26 @@ void test_ANNN() {
     printf("[PASS] test_ANNN\n");
 }
 
+// Test: Jump with offset
+void test_BNNN() {
+    // 1. V0 = 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0xB3;
+    memory[PROG_START_ADDR + 1] = 0x00;
+    chip8_step();
+    assert(pc == 0x300);
+
+    // 1. V0 = 5
+    chip8_init();
+    V[0] = 5;
+    memory[PROG_START_ADDR]     = 0xB3;
+    memory[PROG_START_ADDR + 1] = 0x00;
+    chip8_step();
+    assert(pc == 0x305);
+
+    printf("[PASS] test_BNNN\n");
+}
+
 // Test: Add to index I
 void test_FX1E() {
     chip8_init();
@@ -988,6 +1008,7 @@ int main(void) {
     test_8XYE();  // Left shift (ambiguous instruction)
     test_9XY0();  // if VX != VY skip 1 instruction
     test_ANNN();  // Set index
+    test_BNNN();  // Jump with offset (ambiguous)
     test_FX1E();  // Add to index
     test_FX29();  // Set index to font described by VX
     test_FX33();  // Write the 3 decimal digits of VX to I
