@@ -380,6 +380,314 @@ void test_7XNN() {
     printf("[PASS] test_7XNN\n");
 }
 
+// Test: Set VX = VY
+void test_8XY0() {
+    // 1. V0 = V1 where both are 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x10;
+    chip8_step();
+    assert(V[0x0] == V[0x1]);
+
+    // 2. V0 = V1 where VY = 5
+    chip8_init();
+    V[0x1] = 5;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x10;
+    chip8_step();
+    assert(V[0x0] == 5);
+    assert(V[0x1] == 5);
+
+    // 3. V5 = V2 where V5 = 4, V2 = 0x9A
+    chip8_init();
+    V[0x5] = 0x04;
+    V[0x2] = 0x9A;
+    memory[PROG_START_ADDR]     = 0x85;
+    memory[PROG_START_ADDR + 1] = 0x20;
+    chip8_step();
+    assert(V[0x5] == 0x9A);
+    assert(V[0x2] == 0x9A);
+
+    printf("[PASS] test_8XY0\n");
+}
+
+// Test: VX = VX | VY
+void test_8XY1() {
+    // 1. V0 = 0 | 0
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x11;
+    chip8_step();
+    assert(V[0x0] == 0b00000000);
+    assert(V[0x1] == 0b00000000);
+
+    // 2. V0 = V0 (0b00000000) | V1 (0b10101010)
+    chip8_init();
+    V[0x0] = 0b00000000;
+    V[0x1] = 0b10101010;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x11;
+    chip8_step();
+    assert(V[0x0] == 0b10101010);
+    assert(V[0x1] == 0b10101010);
+
+    // 3. V0 = V0 (0b11110000) | V1 (0b10101010)
+    chip8_init();
+    V[0x0] = 0b11110000;
+    V[0x1] = 0b10101010;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x11;
+    chip8_step();
+    assert(V[0x0] == 0b11111010);
+    assert(V[0x1] == 0b10101010);
+    
+    // 4. V0 = V0 (0b11110000) | V1 (0b00110000)
+    chip8_init();
+    V[0x0] = 0b11110000;
+    V[0x1] = 0b00110000;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x11;
+    chip8_step();
+    assert(V[0x0] == 0b11110000);
+    assert(V[0x1] == 0b00110000);
+    
+    // 5. V9 = V9 (0b10101010) | VA (0b01010101)
+    chip8_init();
+    V[0x9] = 0b10101010;
+    V[0xA] = 0b01010101;
+    memory[PROG_START_ADDR]     = 0x89;
+    memory[PROG_START_ADDR + 1] = 0xA1;
+    chip8_step();
+    assert(V[0x9] == 0b11111111);
+    assert(V[0xA] == 0b01010101);
+
+    printf("[PASS] test_8XY1\n");
+}
+
+// Test: VX = VX & VY
+void test_8XY2() {
+    // 1. V0 = V0 (0b00000000) & V1 (0b10101010)
+    chip8_init();
+    V[0x0] = 0b00000000;
+    V[0x1] = 0b10101010;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x12;
+    chip8_step();
+    assert(V[0x0] == 0b00000000);
+    assert(V[0x1] == 0b10101010);
+
+    // 2. V0 = V0 (0b11000011) & V1 (0b10101010)
+    chip8_init();
+    V[0x0] = 0b11000011;
+    V[0x1] = 0b10101010;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x12;
+    chip8_step();
+    assert(V[0x0] == 0b10000010);
+    assert(V[0x1] == 0b10101010);
+
+    // 3. V4 = V4 (0b11111111) & V4 (0b01010101)
+    chip8_init();
+    V[0x4] = 0b11111111;
+    V[0x5] = 0b01010101;
+    memory[PROG_START_ADDR]     = 0x84;
+    memory[PROG_START_ADDR + 1] = 0x52;
+    chip8_step();
+    assert(V[0x4] == 0b01010101);
+    assert(V[0x5] == 0b01010101);
+
+    printf("[PASS] test_8XY2\n");
+}
+
+// Test: VX = VX ^ VY
+void test_8XY3() {
+    // 1. V0 = V0 (0b00001111) ^ V1 (0b10101010)
+    chip8_init();
+    V[0x0] = 0b00001111;
+    V[0x1] = 0b10101010;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x13;
+    chip8_step();
+    assert(V[0x0] == 0b10100101);
+    assert(V[0x1] == 0b10101010);
+    
+    // 2. V2 = V2 (0b10101010) ^ V3 (0b10101010)
+    chip8_init();
+    V[0x2] = 0b10101010;
+    V[0x3] = 0b10101010;
+    memory[PROG_START_ADDR]     = 0x82;
+    memory[PROG_START_ADDR + 1] = 0x33;
+    chip8_step();
+    assert(V[0x2] == 0b00000000);
+    assert(V[0x3] == 0b10101010);
+
+    printf("[PASS] test_8XY3\n");
+}
+
+// Test: VX = VX + VY (with carry flag). VF = 1 on overflow.
+void test_8XY4() {
+    // 1. V0 = V0 (0) + V1 (0)
+    chip8_init();
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x14;
+    chip8_step();
+    assert(V[0x0] == 0);
+    assert(V[0x1] == 0);
+    assert(V[0xF] == 0);  // no overflow
+
+    // 2. V0 = V0 (0xCD) + V1 (0x12)
+    chip8_init();
+    V[0x0] = 0xCD;
+    V[0x1] = 0x12;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x14;
+    chip8_step();
+    assert(V[0x0] == 0xDF);
+    assert(V[0x1] == 0x12);
+    assert(V[0xF] == 0);  // no overflow
+
+    // 3. V0 = V0 (0xFF) + V1 (0x01)
+    chip8_init();
+    V[0x0] = 0xFF;
+    V[0x1] = 0x01;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x14;
+    chip8_step();
+    assert(V[0x0] == 0x00);
+    assert(V[0x1] == 0x01);
+    assert(V[0xF] == 1);  // overflow
+    
+    // 4. V7 = V7 (0x33) + V7 (0x33)
+    chip8_init();
+    V[0x7] = 0x33;
+    memory[PROG_START_ADDR]     = 0x87;
+    memory[PROG_START_ADDR + 1] = 0x74;
+    chip8_step();
+    assert(V[0x7] == 0x66);
+    assert(V[0x4] == 0);  // no overflow
+    
+    // 5. V7 = V7 (0x34) + VE (0x5A)
+    chip8_init();
+    V[0x7] = 0x33;
+    V[0xE] = 0xDA;
+    memory[PROG_START_ADDR]     = 0x87;
+    memory[PROG_START_ADDR + 1] = 0xE4;
+    chip8_step();
+    assert(V[0x7] == 0x0D);
+    assert(V[0xE] == 0xDA);
+    assert(V[0xF] == 1);  // overflow
+
+    printf("[PASS] test_8XY4\n");
+}
+
+// Test: VX = VX - VY (with carry flag). VF = 0 on underflow.
+void test_8XY5() {
+    // 1. V0 = V0 (0x05) - V1 (0x01)
+    chip8_init();
+    V[0x0] = 0x05;
+    V[0x1] = 0x01;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x15;
+    chip8_step();
+    assert(V[0x0] == 0x04);
+    assert(V[0x1] == 0x01);
+    assert(V[0xF] == 1);  // no underflow
+    
+    // 2. V0 = V0 (0x05) - V1 (0x06)
+    chip8_init();
+    V[0x0] = 0x05;
+    V[0x1] = 0x06;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x15;
+    chip8_step();
+    assert(V[0x0] == 0xFF);
+    assert(V[0x1] == 0x06);
+    assert(V[0xF] == 0);  // underflow
+
+    printf("[PASS] test_8XY5\n");
+}
+
+// Test: Left shift 1. VX = VX << 1. Ambiguous instruction
+void test_8XY6() {
+    // 1.
+    chip8_init();
+    V[0x0] = 0b01010101;
+    V[0x1] = 0b00000000;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x16;
+    chip8_step();
+    assert(V[0x0] == 0b10101010);
+    // assert(V[0x1] == 0b01010101);  // Ambiguous
+    assert(V[0xF] == 0);  // 0 was shifted out of the register
+    
+    // 2.
+    chip8_init();
+    V[0x0] = 0b11111111;
+    V[0x1] = 0b00000000;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x16;
+    chip8_step();
+    assert(V[0x0] == 0b11111110);
+    // assert(V[0x1] == 0b11111111);  // Ambiguous
+    assert(V[0xF] == 1);  // 1 was shifted out of the register
+
+    printf("[PASS] test_8XY6\n");
+}
+
+// Test: VX = VY - VX (with carry flag)
+void test_8XY7() {
+    // 1. V0 = V1 (0x10) - V0 (0x01)
+    chip8_init();
+    V[0x0] = 0x01;
+    V[0x1] = 0x10;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x17;
+    chip8_step();
+    assert(V[0x0] == 0x0F);
+    assert(V[0x1] == 0x10);
+    assert(V[0xF] == 1);  // no underflow
+    
+    // 2. V0 = V1 (0x05) - V0 (0x06)
+    chip8_init();
+    V[0x0] = 0x06;
+    V[0x1] = 0x05;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x17;
+    chip8_step();
+    assert(V[0x0] == 0xFF);
+    assert(V[0x1] == 0x05);
+    assert(V[0xF] == 0);  // underflow
+
+    printf("[PASS] test_8XY7\n");
+}
+
+// Test: Right shift 1. VX = VX >> 1. Ambiguous instruction
+void test_8XYE() {
+    // 1.
+    chip8_init();
+    V[0x0] = 0b10101010;
+    V[0x1] = 0b00000000;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x1E;
+    chip8_step();
+    assert(V[0x0] == 0b01010101);
+    // assert(V[0x1] == 0b01010101);  // Ambiguous
+    assert(V[0xF] == 0);  // 0 was shifted out of the register
+    
+    // 2.
+    chip8_init();
+    V[0x0] = 0b11111111;
+    V[0x1] = 0b00000000;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0x1E;
+    chip8_step();
+    assert(V[0x0] == 0b01111111);
+    // assert(V[0x1] == 0b11111111);  // Ambiguous
+    assert(V[0xF] == 1);  // 1 was shifted out of the register
+
+    printf("[PASS] test_8XYE\n");
+}
+
 // Test: if (VX != VY) skip 1 instruction
 void test_9XY0() {
     // 1. false/no skip: V0 != V1 where V0 & V1 = 0
@@ -456,8 +764,17 @@ int main(void) {
     test_3XNN();  // if VX == NN skip 1 instruction
     test_4XNN();  // if VX != NN skip 1 instruction
     test_5XY0();  // if VX == VY skip 1 instruction
-    test_6XNN();  // Set register
+    test_6XNN();  // Set register to immediate
     test_7XNN();  // Add (no carry) to register
+    test_8XY0();  // Set register VX = VY
+    test_8XY1();  // Binary OR
+    test_8XY2();  // Binary AND
+    test_8XY3();  // Logical XOR
+    test_8XY4();  // Add VX = VX + VY
+    test_8XY5();  // Subtract VX = VX - VY (with carry flag)
+    test_8XY6();  // Left shift (ambiguous instruction)
+    test_8XY7();  // Subtract VX = VY - VX (with carry flag)
+    test_8XYE();  // Right shift (ambiguous instruction)
     test_9XY0();  // if VX != VY skip 1 instruction
     test_ANNN();  // Set index
 

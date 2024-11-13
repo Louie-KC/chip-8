@@ -59,10 +59,10 @@ unsigned short fetch() {
 }
 
 void decode_and_exec(unsigned short instruction) {
-    unsigned char first_nibble  = (instruction & 0xF000) >> 12;
+    unsigned char unrecognised = 0;
 
-    // printf("decode instruction:  %04x\n", instruction);
-    // printf("decode first_nibble: %x\n", first_nibble);
+    unsigned char first_nibble = (instruction & 0xF000) >> 12;
+    unsigned char last_nibble  = (instruction & 0x000F);
 
     unsigned char  X   = (instruction & 0x0F00) >> 8;
     unsigned char  Y   = (instruction & 0x00F0) >> 4;
@@ -74,6 +74,8 @@ void decode_and_exec(unsigned short instruction) {
     unsigned short dx;
     unsigned short dy;
     unsigned short di;
+
+    unsigned char arithmetic_result;  // for overflow/underflow detection
 
     switch (first_nibble) {
         case 0x0:
@@ -89,7 +91,7 @@ void decode_and_exec(unsigned short instruction) {
                     pc = stack[--sp];
                     break;
                 default:
-                    printf("[INFO] decode_and_exec: Unrecognised instruction '%x'\n", instruction);
+                    unrecognised = 1;
             }
             break;
         
@@ -135,6 +137,77 @@ void decode_and_exec(unsigned short instruction) {
             V[X] += NN;
             break;
 
+        case 0x8:
+            switch (last_nibble) {
+                // 8XY0: set register VX = VY
+                case 0x0:
+                    V[X] = V[Y];
+                    break;
+                
+                // 8XY1: binary OR VX = VX | VY
+                case 0x1:
+                    V[X] = V[X] | V[Y];
+                    break;
+                
+                // 8XY2: binary AND VX = VX & VY
+                case 0x2:
+                    V[X] = V[X] & V[Y];
+                    break;
+                
+                // 8XY3: logical XOR VX = VX ^ VY
+                case 0x3:
+                    V[X] = V[X] ^ V[Y];
+                    break;
+                
+                // 8XY4: add V[X] = V[X] + V[Y] w/ overflow detection
+                case 0x4:
+                    V[0xF] = 0;
+                    arithmetic_result = (V[X] + V[Y]) % 256;
+                    if (V[X] > arithmetic_result) {
+                        V[0xF] ^= 1;  // overflow. flip bit
+                    }
+                    V[X] = arithmetic_result;
+                    break;
+                
+                // 8XY5: subtract V[X] = V[X] - V[Y] w/ underflow detection
+                case 0x5:
+                    V[0xF] = 1;
+                    arithmetic_result = (V[X] - V[Y]) % 256;
+                    if (V[X] < arithmetic_result) {
+                        V[0xF] ^= 1;  // underflow. flip bit
+                    }
+                    V[X] = arithmetic_result;
+                    break;
+                
+                // 8XY6: Left shift. VX = VX << 1 (ambiguous VY)
+                case 0x6:
+                    V[0xF] = (V[X] & 0b10000000) >> 7;
+                    // V[Y] = V[X]; // Ambiguous
+                    V[X] = V[X] << 1;
+                    break;
+                
+                // 8XY7: subtract V[X] = V[Y] - V[X] w/ underflow detection
+                case 0x7:
+                    V[0xF] = 1;
+                    arithmetic_result = (V[Y] - V[X]) % 256;
+                    if (V[Y] < arithmetic_result) {
+                        V[0xF] ^= 1;  // underflow. flip bit
+                    }
+                    V[X] = arithmetic_result;
+                    break;
+                
+                // 8XYE: Right shift. VX = VX >> 1 (ambiguous VY)
+                case 0xE:
+                    V[0xF] = V[X] & 0b00000001;
+                    // V[Y] = V[X]; // Ambiguous
+                    V[X] = V[X] >> 1;
+                    break;
+                
+                default:
+                    unrecognised = 1;
+            }
+            break;
+
         // 9XY0: skip 1 instruction if VX != VY
         case 0x9:
             if (V[X] != V[Y]) {
@@ -171,7 +244,10 @@ void decode_and_exec(unsigned short instruction) {
             break;
 
         default:
-            printf("[INFO] decode_and_exec: Unrecognised instruction '%x'\n", instruction);
+            unrecognised = 1;
+    }
+    if (unrecognised) {
+        printf("[INFO] decode_and_exec: Unrecognised instruction '%x'\n", instruction);
     }
 }
 
