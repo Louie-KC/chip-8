@@ -242,6 +242,51 @@ void decode_and_exec(unsigned short instruction) {
                 }
             }
             break;
+        // F...: Operations
+        case 0xF:
+            switch (NN) {
+                // FX1E: Add VX to index I
+                case 0x1E:
+                    arithmetic_result = (I + V[X]) % 0xFFF;
+                    if (arithmetic_result < I) {
+                        // Amiga interpreter behaviour
+                        V[0xF] = 1;
+                    }
+                    I = arithmetic_result;
+                    break;
+                
+                // FX29: Font character
+                case 0x29:
+                    I = FONT_START_ADDR + (V[X] * 5);  // 5 bytes per char sprite
+                    break;
+                
+                // FX33: Binary-coded decimal conversion. Lay out digits starting at I
+                case 0x33:
+                    memory[I]     = V[X] / 100 % 10;
+                    memory[I + 1] = V[X] / 10 % 10; 
+                    memory[I + 2] = V[X] % 10;
+                    break;
+                
+                // FX55: Store first n (determined by X) register values in memory
+                case 0x55:
+                    for (int i = 0; i <= X; i++) {
+                        memory[I + i] = V[i];
+                    }
+                    // I += X; // Ambiguous: old ROMS expect this
+                    break;
+                
+                // FX65: Load first n (determined by X) register values from memory
+                case 0x65:
+                    for (int i = 0; i <= X; i++) {
+                        V[i] = memory[I + i];
+                    }
+                    // I += X + 1;  // Ambiguous: old ROMS expect this
+                    break;
+                
+                default:
+                    unrecognised = 1;
+            }
+            break;
 
         default:
             unrecognised = 1;

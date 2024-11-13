@@ -752,6 +752,217 @@ void test_ANNN() {
     printf("[PASS] test_ANNN\n");
 }
 
+// Test: Add to index I
+void test_FX1E() {
+    chip8_init();
+    V[0x0] = 5;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x1E;
+    chip8_step();
+    assert(I == 5);
+
+    chip8_init();
+    V[0x4] = 9;
+    memory[PROG_START_ADDR]     = 0xF4;
+    memory[PROG_START_ADDR + 1] = 0x1E;
+    chip8_step();
+    assert(I == 9);
+
+    printf("[PASS] test_FX1E\n");
+}
+
+// Test: Set address of font for VX value to I
+void test_FX29() {
+    // 1. Set index to the first sprite 0
+    chip8_init();
+    V[0x0] = 0;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x29;
+    chip8_step();
+    assert(I == FONT_START_ADDR);
+
+    // 2. Set index to the 8th sprite 8
+    chip8_init();
+    V[0x0] = 0x8;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x29;
+    chip8_step();
+    assert(I == FONT_START_ADDR + 0x28);
+
+    // 3. Set index to the last sprite F
+    chip8_init();
+    V[0x0] = 0xF;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x29;
+    chip8_step();
+    assert(I == FONT_START_ADDR + 0x4B);
+
+    printf("[PASS] test_FX29\n");
+}
+
+// Test: Write decimal digits of the value in VX at I
+void test_FX33() {
+    // 1. All 0s
+    chip8_init();
+    V[0x0] = 0;
+    I = 0;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x33;
+    chip8_step();
+    assert(I == 0);
+    assert(memory[0] == 0);
+    assert(memory[1] == 0);
+    assert(memory[2] == 0);
+
+    // 2. Write 246
+    chip8_init();
+    V[0x0] = 246;
+    I = 0;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x33;
+    chip8_step();
+    assert(I == 0);
+    assert(memory[0] == 2);
+    assert(memory[1] == 4);
+    assert(memory[2] == 6);
+
+    // 3. Write 185 from V2 
+    chip8_init();
+    V[0x2] = 185;
+    I = 0x400;
+    memory[PROG_START_ADDR]     = 0xF2;
+    memory[PROG_START_ADDR + 1] = 0x33;
+    chip8_step();
+    assert(I == 0x400);
+    assert(memory[0x400] == 1);
+    assert(memory[0x401] == 8);
+    assert(memory[0x402] == 5);
+
+    printf("[PASS] test_FX33\n");
+}
+
+// Test: Dump first X + 1 register values to memory at I
+void test_FX55() {
+    // 1. Write up to the 0th index
+    chip8_init();
+    V[0x0] = 44;
+    V[0x1] = 55;
+    V[0x2] = 66;
+    I = 0x300;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x55;
+    chip8_step();
+    assert(I == 0x300);  // ambiguous
+    assert(memory[0x300] == 44);
+    assert(memory[0x301] == 0);
+    assert(memory[0x302] == 0);
+
+    // 2. Write up to the 2nd index
+    chip8_init();
+    V[0x0] = 44;
+    V[0x1] = 55;
+    V[0x2] = 66;
+    I = 0x300;
+    memory[PROG_START_ADDR]     = 0xF2;
+    memory[PROG_START_ADDR + 1] = 0x55;
+    chip8_step();
+    assert(I == 0x300);  // ambiguous
+    assert(memory[0x300] == 44);
+    assert(memory[0x301] == 55);
+    assert(memory[0x302] == 66);
+    
+    // 3. Write up to the Fth index
+    chip8_init();
+    V[0x0] = 44;
+    V[0x1] = 55;
+    V[0x2] = 66;
+    V[0x3] = 77;
+    V[0xC] = 91;
+    V[0xF] = 123;
+    I = 0x300;
+    memory[PROG_START_ADDR]     = 0xFF;
+    memory[PROG_START_ADDR + 1] = 0x55;
+    chip8_step();
+    assert(I == 0x300);  // ambiguous
+    assert(memory[0x300] == 44);
+    assert(memory[0x301] == 55);
+    assert(memory[0x302] == 66);
+    assert(memory[0x303] == 77);
+    assert(memory[0x304] == 0);
+    assert(memory[0x305] == 0);
+    assert(memory[0x306] == 0);
+    assert(memory[0x307] == 0);
+    assert(memory[0x308] == 0);
+    assert(memory[0x309] == 0);
+    assert(memory[0x30A] == 0);
+    assert(memory[0x30B] == 0);
+    assert(memory[0x30C] == 91);
+    assert(memory[0x30D] == 0);
+    assert(memory[0x30E] == 0);
+    assert(memory[0x30F] == 123);
+
+    printf("[PASS] test_FX55\n");
+}
+
+// Test: Load first X + 1 values from memory at address I to registers
+void test_FX65() {
+    // 1. Load up to the 0th register
+    chip8_init();
+    I = 0x300;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x65;
+    memory[0x300] = 12;
+    memory[0x301] = 42;
+    memory[0x302] = 55;
+    chip8_step();
+    assert(I == 0x300);  // ambiguous
+    assert(V[0x0] == 12);
+    assert(V[0x1] == 0);
+    assert(V[0x2] == 0);
+
+    // 2. Load up to the 2nd register
+    chip8_init();
+    I = 0x300;
+    memory[PROG_START_ADDR]     = 0xF2;
+    memory[PROG_START_ADDR + 1] = 0x65;
+    memory[0x300] = 12;
+    memory[0x301] = 42;
+    memory[0x302] = 55;
+    chip8_step();
+    assert(I == 0x300);  // ambiguous
+    assert(V[0x0] == 12);
+    assert(V[0x1] == 42);
+    assert(V[0x2] == 55);
+
+    // 3. Load up to the 7th register
+    chip8_init();
+    I = 0x300;
+    memory[PROG_START_ADDR]     = 0xF7;
+    memory[PROG_START_ADDR + 1] = 0x65;
+    memory[0x300] = 12;
+    memory[0x301] = 42;
+    memory[0x302] = 55;
+    memory[0x303] = 11;
+    memory[0x304] = 99;
+    memory[0x305] = 104;
+    memory[0x306] = 250;
+    memory[0x307] = 33;
+    memory[0x308] = 255;
+    chip8_step();
+    assert(I == 0x300);  // ambiguous
+    assert(V[0x0] == 12);
+    assert(V[0x1] == 42);
+    assert(V[0x2] == 55);
+    assert(V[0x3] == 11);
+    assert(V[0x4] == 99);
+    assert(V[0x5] == 104);
+    assert(V[0x6] == 250);
+    assert(V[0x7] == 33);
+    assert(V[0x8] == 0);
+
+    printf("[PASS] test_FX65\n");
+}
+
 int main(void) {
     printf("* Beginning chip-8 init test\n");
     test_chip8_init();
@@ -777,6 +988,11 @@ int main(void) {
     test_8XYE();  // Left shift (ambiguous instruction)
     test_9XY0();  // if VX != VY skip 1 instruction
     test_ANNN();  // Set index
+    test_FX1E();  // Add to index
+    test_FX29();  // Set index to font described by VX
+    test_FX33();  // Write the 3 decimal digits of VX to I
+    test_FX55();  // Dump registers to memory at I
+    test_FX65();  // Load values to registers from memory at I
 
     printf("\n* All tests passed\n");
     return 0;
