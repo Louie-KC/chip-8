@@ -59,7 +59,7 @@ unsigned short fetch() {
     return instruction;
 }
 
-void decode_and_exec(unsigned short instruction) {
+void decode_and_exec(unsigned short instruction, unsigned char key_input) {
     unsigned char unrecognised = 0;
 
     unsigned char first_nibble = (instruction & 0xF000) >> 12;
@@ -364,7 +364,7 @@ int chip8_load_rom(char *rom_path) {
     return 0;
 }
 
-void chip8_step() {
+void chip8_step(unsigned key_input) {
     unsigned short instruction = fetch();
-    decode_and_exec(instruction);
+    decode_and_exec(instruction, key_input);
 }

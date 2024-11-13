@@ -16,6 +16,8 @@
 #define REQ_ARGC 2
 #define USAGE "<rom file path>"
 
+unsigned char input;
+
 int main(int argc, char *argv[]) {
     if (argc != REQ_ARGC) {
         printf("Incorrect number of arguments.\n");
@@ -31,8 +33,8 @@ int main(int argc, char *argv[]) {
     chip8_load_rom(argv[1]);
 
     while (!quit_flag) {
-        sdl_input_step();
-        chip8_step();
+        input = sdl_input_step();
+        chip8_step(input);
         if (chip8_display_updated) {
             sdl_draw_step(chip8_display);
             chip8_display_updated = 0;

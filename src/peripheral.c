@@ -8,13 +8,12 @@
 SDL_Window *window;
 SDL_Renderer *renderer;
 
-char last_input;
 char draw_scale;
 char quit_flag;
 
 int sdl_init(char);
 void sdl_close(void);
-void sdl_input_step(void);
+unsigned char sdl_input_step(void);
 void sdl_draw_step(unsigned char *);
 
 int sdl_init(char scale) {
@@ -51,13 +50,88 @@ void sdl_close(void) {
     SDL_Quit();
 }
 
-void sdl_input_step(void) {
+// Get user input.
+// 
+// Maps a 4x4 grid of keys (1 as the top left) on the keyboard to the
+// CHIP-8 keypad keys (0-F).
+//
+// At most 1 key is detected, with 1 (top left) having the highest
+// precedence and the F (V the keyboard) being the lowest.
+//
+// Returns a 8 bit value, where the first half byte indicates if a key
+// is being input, and the second half byte tells you which of the
+// 0-F CHIP-8 keys is down.
+unsigned char sdl_input_step(void) {
     SDL_Event event;
+    const Uint8* keyboard;
+    unsigned char input = 0;
+
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             quit_flag = 1;
+            return 0;
         }
     }
+
+    keyboard = SDL_GetKeyboardState(NULL);
+
+    // Input layout:
+    // keypad  | mapped keys
+    // --------|------------
+    // 1 2 3 C | 1 2 3 4
+    // 4 5 6 D | Q W E R
+    // 7 8 9 E | A S D F
+    // A 0 B F | Z X C V
+    if (keyboard[SDL_SCANCODE_1]) {
+        input = 0x11;
+    }
+    else if (keyboard[SDL_SCANCODE_2]) {
+        input = 0x12;
+    }
+    else if (keyboard[SDL_SCANCODE_3]) {
+        input = 0x13;
+    }
+    else if (keyboard[SDL_SCANCODE_4]) {
+        input = 0x1C;
+    }
+    else if (keyboard[SDL_SCANCODE_Q]) {
+        input = 0x14;
+    }
+    else if (keyboard[SDL_SCANCODE_W]) {
+        input = 0x15;
+    }
+    else if (keyboard[SDL_SCANCODE_E]) {
+        input = 0x16;
+    }
+    else if (keyboard[SDL_SCANCODE_R]) {
+        input = 0x1D;
+    }
+    else if (keyboard[SDL_SCANCODE_A]) {
+        input = 0x17;
+    }
+    else if (keyboard[SDL_SCANCODE_S]) {
+        input = 0x18;
+    }
+    else if (keyboard[SDL_SCANCODE_D]) {
+        input = 0x19;
+    }
+    else if (keyboard[SDL_SCANCODE_F]) {
+        input = 0x1E;
+    }
+    else if (keyboard[SDL_SCANCODE_Z]) {
+        input = 0x1A;
+    }
+    else if (keyboard[SDL_SCANCODE_X]) {
+        input = 0x10;
+    }
+    else if (keyboard[SDL_SCANCODE_C]) {
+        input = 0x1B;
+    }
+    else if (keyboard[SDL_SCANCODE_V]) {
+        input = 0x1F;
+    }
+
+    return input;
 }
 
 void sdl_draw_step(unsigned char * display) {
