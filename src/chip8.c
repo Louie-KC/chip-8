@@ -253,9 +253,40 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
                 }
             }
             break;
+
+        case 0xE:
+            switch (NN) {
+                // EX9E: skip 1 instruction if key VX is down
+                case 0x9E:
+                    if ((key_input & 0xF0) && (key_input & 0x0F) == V[X]) {
+                        pc += 2;
+                    }
+                    break;
+
+                // EXA1: skip 1 instruction if key VX is up
+                case 0xA1:
+                    if (!(key_input & 0xF0) || (key_input & 0x0F) != V[X]) {
+                        pc += 2;
+                    }
+                    break;
+
+                default:
+                    unrecognised = 1;
+            }
+            break;
+
         // F...: Operations
         case 0xF:
             switch (NN) {
+                // FX0A: Get key (blocking)
+                case 0x0A:
+                    if (key_input & 0x10) {
+                        V[X] = key_input & 0x0F;
+                    } else {
+                        pc -= 2;  // Retry on next step
+                    }
+                    break;
+
                 // FX1E: Add VX to index I
                 case 0x1E:
                     arithmetic_result = (I + V[X]) % 0xFFF;

@@ -772,6 +772,121 @@ void test_BNNN() {
     printf("[PASS] test_BNNN\n");
 }
 
+// Test: Skip if key is down/pressed.
+void test_EX9E() {
+    // 1. No input
+    chip8_init();
+    V[0x0] = 0;  // skip trigger key
+    memory[PROG_START_ADDR]     = 0xE0;
+    memory[PROG_START_ADDR + 1] = 0x9E;
+    chip8_step(0);
+    assert(pc == PROG_START_ADDR + 2);
+
+    // 2. 0 key down and is skip key
+    chip8_init();
+    V[0x0] = 0;
+    memory[PROG_START_ADDR]     = 0xE0;
+    memory[PROG_START_ADDR + 1] = 0x9E;
+    chip8_step(0x10);
+    assert(pc == PROG_START_ADDR + 4);
+
+    // 3. Non-skip key down
+    chip8_init();
+    V[0x0] = 0xB;
+    memory[PROG_START_ADDR]     = 0xE0;
+    memory[PROG_START_ADDR + 1] = 0x9E;
+    chip8_step(0x15);
+    assert(pc == PROG_START_ADDR + 2);
+    
+    // 4. Different register holding skip key
+    chip8_init();
+    V[0xA] = 0xA;
+    memory[PROG_START_ADDR]     = 0xEA;
+    memory[PROG_START_ADDR + 1] = 0x9E;
+    chip8_step(0x1A);
+    assert(pc == PROG_START_ADDR + 4);
+
+    printf("[PASS] test_EX9E\n");
+}
+
+// Test: Skip if key is up/not pressed.
+void test_EXA1() {
+    // 1. No input
+    chip8_init();
+    V[0x0] = 0x0;
+    memory[PROG_START_ADDR]     = 0xE0;
+    memory[PROG_START_ADDR + 1] = 0xA1;
+    chip8_step(0);
+    assert(pc == PROG_START_ADDR + 4);
+    
+    // 2. 0 key down and is no skip key
+    chip8_init();
+    V[0x0] = 0x0;
+    memory[PROG_START_ADDR]     = 0xE0;
+    memory[PROG_START_ADDR + 1] = 0xA1;
+    chip8_step(0x10);
+    assert(pc == PROG_START_ADDR + 2);
+
+    // 3. Non-0 no skip key
+    chip8_init();
+    V[0x0] = 0x4;
+    memory[PROG_START_ADDR]     = 0xE0;
+    memory[PROG_START_ADDR + 1] = 0xA1;
+    chip8_step(0x14);
+    assert(pc == PROG_START_ADDR + 2);
+
+    // 4. Different register
+    chip8_init();
+    V[0xC] = 0xA;
+    memory[PROG_START_ADDR]     = 0xEC;
+    memory[PROG_START_ADDR + 1] = 0xA1;
+    chip8_step(0x18);
+    assert(pc == PROG_START_ADDR + 4);
+
+    printf("[PASS] test_EXA1\n");
+}
+
+// Test: Get key. Block if no key
+void test_FX0A() {
+    // 1. No key
+    chip8_init();
+    V[0x0] = 0xFF;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x0A;
+    chip8_step(0x00);
+    assert(pc == PROG_START_ADDR);
+    assert(V[0x0] == 0xFF);
+
+    // 2. 0 key
+    chip8_init();
+    V[0x0] = 0xFF;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x0A;
+    chip8_step(0x10);
+    assert(pc == PROG_START_ADDR + 2);
+    assert(V[0x0] == 0x00);
+
+    // 3. B key
+    chip8_init();
+    V[0x0] = 0xFF;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x0A;
+    chip8_step(0x1B);
+    assert(pc == PROG_START_ADDR + 2);
+    assert(V[0x0] == 0x0B);
+
+    // 4. B key into V4
+    chip8_init();
+    V[0x4] = 0xFF;
+    memory[PROG_START_ADDR]     = 0xF4;
+    memory[PROG_START_ADDR + 1] = 0x0A;
+    chip8_step(0x1B);
+    assert(pc == PROG_START_ADDR + 2);
+    assert(V[0x4] == 0x0B);
+
+    printf("[PASS] test_FX0A\n");
+}
+
 // Test: Add to index I
 void test_FX1E() {
     chip8_init();
@@ -1009,6 +1124,9 @@ int main(void) {
     test_9XY0();  // if VX != VY skip 1 instruction
     test_ANNN();  // Set index
     test_BNNN();  // Jump with offset (ambiguous)
+    test_EX9E();  // if key is down skip 1 instruction
+    test_EXA1();  // if key is up skip 1 instruction
+    test_FX0A();  // Get key.
     test_FX1E();  // Add to index
     test_FX29();  // Set index to font described by VX
     test_FX33();  // Write the 3 decimal digits of VX to I
