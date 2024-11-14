@@ -846,6 +846,69 @@ void test_EXA1() {
     printf("[PASS] test_EXA1\n");
 }
 
+// Test: Get delay timer value
+void test_FX07() {
+    chip8_init();
+    V[0x0] = 0xFF;
+    delay_timer = 0;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x07;
+    chip8_step(0);
+    assert(V[0x0] == 0);
+
+    chip8_init();
+    V[0x5] = 0xFF;
+    delay_timer = 20;
+    memory[PROG_START_ADDR]     = 0xF5;
+    memory[PROG_START_ADDR + 1] = 0x07;
+    chip8_step(0);
+    assert(V[0x5] == 20);
+
+    printf("[PASS] test_FX07\n");
+}
+
+// Test: Set delay timer
+void test_FX15() {
+    chip8_init();
+    V[0x0] = 100;
+    delay_timer = 0;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x15;
+    chip8_step(0);
+    assert(delay_timer == 100);
+
+    chip8_init();
+    V[0x5] = 50;
+    delay_timer = 20;
+    memory[PROG_START_ADDR]     = 0xF5;
+    memory[PROG_START_ADDR + 1] = 0x15;
+    chip8_step(0);
+    assert(delay_timer == 50);
+
+    printf("[PASS] test_FX15\n");
+}
+
+// Test: Set sound timer
+void test_FX18() {
+    chip8_init();
+    V[0x0] = 0;
+    sound_timer = 100;
+    memory[PROG_START_ADDR]     = 0xF0;
+    memory[PROG_START_ADDR + 1] = 0x18;
+    chip8_step(0);
+    assert(sound_timer == 0);
+
+    chip8_init();
+    V[0x5] = 40;
+    sound_timer = 20;
+    memory[PROG_START_ADDR]     = 0xF5;
+    memory[PROG_START_ADDR + 1] = 0x18;
+    chip8_step(0);
+    assert(sound_timer == 40);
+
+    printf("[PASS] test_FX18\n");
+}
+
 // Test: Get key. Block if no key
 void test_FX0A() {
     // 1. No key
@@ -1126,6 +1189,9 @@ int main(void) {
     test_BNNN();  // Jump with offset (ambiguous)
     test_EX9E();  // if key is down skip 1 instruction
     test_EXA1();  // if key is up skip 1 instruction
+    test_FX07();  // Get delay timer value
+    test_FX15();  // Set delay timer value
+    test_FX18();  // Set sound timer value
     test_FX0A();  // Get key.
     test_FX1E();  // Add to index
     test_FX29();  // Set index to font described by VX

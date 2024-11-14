@@ -278,6 +278,21 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
         // F...: Operations
         case 0xF:
             switch (NN) {
+                // FX07: Set VX to the delay timers value
+                case 0x07:
+                    V[X] = delay_timer;
+                    break;
+
+                // FX15: Set delay timer to VX
+                case 0x15:
+                    delay_timer = V[X];
+                    break;
+                    
+                // FX18: Set sound timer to VX
+                case 0x18:
+                    sound_timer = V[X];
+                    break;
+
                 // FX0A: Get key (blocking)
                 case 0x0A:
                     if (key_input & 0x10) {
@@ -396,6 +411,7 @@ int chip8_load_rom(char *rom_path) {
 }
 
 void chip8_step(unsigned key_input) {
+    // TODO: update timers here
     unsigned short instruction = fetch();
     decode_and_exec(instruction, key_input);
 }
