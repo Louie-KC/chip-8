@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include <SDL2/SDL.h>
 
 #include "chip8.c"
@@ -16,9 +18,17 @@
 #define REQ_ARGC 2
 #define USAGE "<rom file path>"
 
+#define CPU_HZ_DELAY 1.0 / 700
+#define DISPLAY_HZ_DELAY 1.0 / 60
+
 unsigned char input;
 
 int main(int argc, char *argv[]) {
+    struct timeval time;
+    double time_sec;
+    double next_cycle;
+    double next_display;
+
     if (argc != REQ_ARGC) {
         printf("Incorrect number of arguments.\n");
         printf("Usage: %s %s\n", argv[0], USAGE);
@@ -32,13 +42,33 @@ int main(int argc, char *argv[]) {
     chip8_init();
     chip8_load_rom(argv[1]);
 
+    gettimeofday(&time, NULL);
+    time_sec = time.tv_sec + (time.tv_usec / 1000000.0);
+    next_cycle = time_sec;
+    next_display = time_sec;
+    chip8_next_timer_update = time_sec;  // manually set next timer update time
+
     while (!quit_flag) {
-        input = sdl_input_step();
-        chip8_step(input);
-        if (chip8_display_updated) {
-            sdl_draw_step(chip8_display);
-            chip8_display_updated = 0;
+
+        gettimeofday(&time, NULL);
+        time_sec = time.tv_sec + (time.tv_usec / 1000000.0);
+
+        if (time_sec > next_cycle) {
+            input = sdl_input_step();
+            chip8_step(input, time_sec);
+            next_cycle += CPU_HZ_DELAY;
         }
+
+        if (time_sec > next_display) {
+            if (chip8_display_updated) {
+                sdl_draw_step(chip8_display);
+                chip8_display_updated = 0;
+            }
+            next_display += DISPLAY_HZ_DELAY;
+        }
+
+        // Very brief sleep to reduce CPU load of this busy loop
+        usleep(4);
     }
 
     sdl_close();

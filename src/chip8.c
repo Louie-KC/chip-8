@@ -10,6 +10,8 @@
 #define DISPLAY_RES_Y 32
 #define STACK_SIZE 16
 
+#define TIMER_HZ_DELAY 1.0 / 60
+
 // Flags
 unsigned char chip8_display_updated;
 
@@ -31,6 +33,7 @@ unsigned char chip8_display[DISPLAY_RES_X * DISPLAY_RES_Y];
 // Timers
 unsigned char delay_timer;
 unsigned char sound_timer;
+double chip8_next_timer_update;
 
 // courtesy of https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
 unsigned char fonts[] = {
@@ -51,6 +54,18 @@ unsigned char fonts[] = {
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
+
+void update_timers(double time_sec) {
+    if (time_sec > chip8_next_timer_update) {
+        if (delay_timer > 0) {
+            delay_timer -= 1;
+        }
+        if (sound_timer > 0) {
+            sound_timer -= 1;
+        }
+        chip8_next_timer_update += TIMER_HZ_DELAY;
+    }
+}
 
 // Retrieve the next instruction from memory and increment the program counter.
 unsigned short fetch() {
@@ -410,8 +425,8 @@ int chip8_load_rom(char *rom_path) {
     return 0;
 }
 
-void chip8_step(unsigned key_input) {
-    // TODO: update timers here
+void chip8_step(unsigned key_input, double time_sec) {
+    update_timers(time_sec);
     unsigned short instruction = fetch();
     decode_and_exec(instruction, key_input);
 }
