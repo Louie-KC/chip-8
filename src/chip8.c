@@ -91,7 +91,8 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
     unsigned short dy;
     unsigned short di;
 
-    unsigned char arithmetic_result;  // for overflow/underflow detection
+    // Intermediary result variable for overflow/underflow detection
+    unsigned short arithmetic_result;
 
     switch (first_nibble) {
         case 0x0:
@@ -182,7 +183,7 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
                     if (V[X] > arithmetic_result) {
                         V[0xF] ^= 1;  // overflow. flip bit
                     }
-                    V[X] = arithmetic_result;
+                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
                 // 8XY5: subtract V[X] = V[X] - V[Y] w/ underflow detection
@@ -192,7 +193,7 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
                     if (V[X] < arithmetic_result) {
                         V[0xF] ^= 1;  // underflow. flip bit
                     }
-                    V[X] = arithmetic_result;
+                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
                 // 8XY6: Right shift. VX = VX >> 1 (ambiguous VY)
@@ -209,7 +210,7 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
                     if (V[Y] < arithmetic_result) {
                         V[0xF] ^= 1;  // underflow. flip bit
                     }
-                    V[X] = arithmetic_result;
+                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
                 // 8XYE: Left shift. VX = VX << 1 (ambiguous VY)
@@ -344,7 +345,7 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
                     for (int i = 0; i <= X; i++) {
                         memory[I + i] = V[i];
                     }
-                    // I += X; // Ambiguous: old ROMS expect this
+                    // I += X + 1; // Ambiguous: old ROMS expect this
                     break;
                 
                 // FX65: Load first n (determined by X) register values from memory
