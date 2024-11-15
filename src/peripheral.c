@@ -5,6 +5,9 @@
 #define FAILURE -1
 #define SUCCESS 0
 
+#define VIDEO_RES_X 64
+#define VIDEO_RES_Y 32
+
 #define AUDIO_N_CHANNELS 1
 #define AUDIO_SAMPLE_RATE 44100
 #define AUDIO_BUFFER_SIZE 1024 / 2
@@ -17,6 +20,7 @@ struct {
 
 SDL_Window *window;
 SDL_Renderer *renderer;
+char video_last_frame[VIDEO_RES_X * VIDEO_RES_Y];
 
 char draw_scale;
 char quit_flag;
@@ -53,7 +57,8 @@ int sdl_init(char scale) {
 
     // Init window/video
     window = SDL_CreateWindow("CHIP-8 Emulator", SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, 64 * scale, 32 * scale, SDL_WINDOW_SHOWN);
+        SDL_WINDOWPOS_CENTERED, VIDEO_RES_X * scale, VIDEO_RES_Y * scale,
+        SDL_WINDOW_SHOWN);
     if (!window) {
         fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
         return FAILURE;
@@ -65,6 +70,11 @@ int sdl_init(char scale) {
         sdl_close();
         return FAILURE;
     }
+    // Start with a clear screen
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    memset(video_last_frame, 0, VIDEO_RES_X * VIDEO_RES_Y);
+
     quit_flag = 0;
     return SUCCESS;
 }
@@ -168,24 +178,29 @@ void sdl_draw_step(unsigned char * display) {
     SDL_Rect rect;
     int x;
     int y;
-
-    // Clear screen with black
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-
+    int i;
+    int brightness;
+    
     // Draw rectangles for each pixel
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    for (x = 0; x < 64; x++) {
-        for (y = 0; y < 32; y++) {
-            if (display[(y * 64) + x] == 1) {
-                rect.x = x * draw_scale;
-                rect.y = y * draw_scale;
-                rect.w = draw_scale;
-                rect.h = draw_scale;
-                SDL_RenderFillRect(renderer, &rect);
+    for (x = 0; x < VIDEO_RES_X; x++) {
+        for (y = 0; y < VIDEO_RES_Y; y++) {
+            i = (y * VIDEO_RES_X) + x;
+            rect.x = x * draw_scale;
+            rect.y = y * draw_scale;
+            rect.w = draw_scale;
+            rect.h = draw_scale;
+            // Double buffer
+            if (display[i] | video_last_frame[i]) {
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             }
+            SDL_RenderFillRect(renderer, &rect);
         }
     }
+
+    // Move current frame/display to last frame for double buffer
+    memcpy(video_last_frame, display, VIDEO_RES_X * VIDEO_RES_Y);
 
     // Render all drawings
     SDL_RenderPresent(renderer);
