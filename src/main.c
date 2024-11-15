@@ -67,8 +67,11 @@ int main(int argc, char *argv[]) {
             next_display += DISPLAY_HZ_DELAY;
         }
 
+        // Pause/unpause audio based on sound timer
+        SDL_PauseAudio(sound_timer == 0);
+
         // Very brief sleep to reduce CPU load of this busy loop
-        usleep(4);
+        usleep(8);
     }
 
     sdl_close();

@@ -5,6 +5,16 @@
 #define FAILURE -1
 #define SUCCESS 0
 
+#define AUDIO_N_CHANNELS 1
+#define AUDIO_SAMPLE_RATE 44100
+#define AUDIO_BUFFER_SIZE 1024 / 2
+#define AUDIO_OSCILLATION_RATE 440.0f
+
+struct {
+    float current_step;
+    float step_size;
+} oscillator;
+
 SDL_Window *window;
 SDL_Renderer *renderer;
 
@@ -15,14 +25,33 @@ int sdl_init(char);
 void sdl_close(void);
 unsigned char sdl_input_step(void);
 void sdl_draw_step(unsigned char *);
+void sdl_audio_callback(void *, Uint8 *, int);
 
 int sdl_init(char scale) {
     draw_scale = scale;
 
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
         return FAILURE;
     }
+
+    // Init audio
+    SDL_AudioSpec audio_spec = {
+        .format = AUDIO_F32,
+        .channels = AUDIO_N_CHANNELS,
+        .freq = AUDIO_SAMPLE_RATE,
+        .samples = AUDIO_BUFFER_SIZE,
+        .callback = sdl_audio_callback
+    };
+
+    if (SDL_OpenAudio(&audio_spec, NULL) < 0) {
+        fprintf(stderr, "SDL_OpenAudio Error: %s\n", SDL_GetError());
+        return FAILURE;
+    }
+    oscillator.current_step = 0;
+    oscillator.step_size = (2 * M_PI) / AUDIO_OSCILLATION_RATE;
+
+    // Init window/video
     window = SDL_CreateWindow("CHIP-8 Emulator", SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED, 64 * scale, 32 * scale, SDL_WINDOW_SHOWN);
     if (!window) {
@@ -41,6 +70,7 @@ int sdl_init(char scale) {
 }
 
 void sdl_close(void) {
+    SDL_CloseAudio();
     if (renderer) {
         SDL_DestroyRenderer(renderer);
     }
@@ -159,4 +189,13 @@ void sdl_draw_step(unsigned char * display) {
 
     // Render all drawings
     SDL_RenderPresent(renderer);
+}
+
+// Fill audio buffer with a constant frequency set by `oscillator`.
+void sdl_audio_callback(void *user_data, Uint8 *stream, int len) {
+    float *fstream = (float *) stream;
+    for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
+        oscillator.current_step += oscillator.step_size;
+        fstream[i] = sinf(oscillator.current_step);
+    }
 }
