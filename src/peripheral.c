@@ -1,16 +1,12 @@
-#include <stdio.h>
-
-#include <SDL2/SDL.h>
+#include "peripheral.h"
+#include "chip8.h"
 
 #define FAILURE -1
 #define SUCCESS 0
 
-#define VIDEO_RES_X 64
-#define VIDEO_RES_Y 32
-
 #define AUDIO_N_CHANNELS 1
 #define AUDIO_SAMPLE_RATE 44100
-#define AUDIO_BUFFER_SIZE 1024 / 2
+#define AUDIO_BUFFER_SIZE 512
 #define AUDIO_OSCILLATION_RATE 440.0f
 
 struct {
@@ -20,18 +16,15 @@ struct {
 
 SDL_Window *window;
 SDL_Renderer *renderer;
-char video_last_frame[VIDEO_RES_X * VIDEO_RES_Y];
 
-char draw_scale;
-char quit_flag;
+// Extra video buffer for double buffering
+uint8_t video_last_frame[DISPLAY_RES_X * DISPLAY_RES_Y];
 
-int sdl_init(char);
-void sdl_close(void);
-unsigned char sdl_input_step(void);
-void sdl_draw_step(unsigned char *);
+uint8_t draw_scale;
+
 void sdl_audio_callback(void *, Uint8 *, int);
 
-int sdl_init(char scale) {
+uint8_t sdl_init(char scale) {
     draw_scale = scale;
 
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
@@ -57,10 +50,11 @@ int sdl_init(char scale) {
 
     // Init window/video
     window = SDL_CreateWindow("CHIP-8 Emulator", SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, VIDEO_RES_X * scale, VIDEO_RES_Y * scale,
+        SDL_WINDOWPOS_CENTERED, DISPLAY_RES_X * scale, DISPLAY_RES_Y * scale,
         SDL_WINDOW_SHOWN);
     if (!window) {
         fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
+        sdl_close();
         return FAILURE;
     }
     renderer = SDL_CreateRenderer(window, -1,
@@ -73,9 +67,9 @@ int sdl_init(char scale) {
     // Start with a clear screen
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-    memset(video_last_frame, 0, VIDEO_RES_X * VIDEO_RES_Y);
+    memset(video_last_frame, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
 
-    quit_flag = 0;
+    peripheral_quit_flag = 0;
     return SUCCESS;
 }
 
@@ -90,25 +84,14 @@ void sdl_close(void) {
     SDL_Quit();
 }
 
-// Get user input.
-// 
-// Maps a 4x4 grid of keys (1 as the top left) on the keyboard to the
-// CHIP-8 keypad keys (0-F).
-//
-// At most 1 key is detected, with 1 (top left) having the highest
-// precedence and the F (V the keyboard) being the lowest.
-//
-// Returns a 8 bit value, where the first half byte indicates if a key
-// is being input, and the second half byte tells you which of the
-// 0-F CHIP-8 keys is down.
-unsigned char sdl_input_step(void) {
+uint8_t sdl_input_step(void) {
     SDL_Event event;
-    const Uint8* keyboard;
-    unsigned char input = 0;
+    const uint8_t* keyboard;
+    uint8_t input = 0;
 
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
-            quit_flag = 1;
+            peripheral_quit_flag = 1;
             return 0;
         }
     }
@@ -174,17 +157,16 @@ unsigned char sdl_input_step(void) {
     return input;
 }
 
-void sdl_draw_step(unsigned char * display) {
+void sdl_draw_step(uint8_t *display) {
     SDL_Rect rect;
-    int x;
-    int y;
-    int i;
-    int brightness;
+    uint8_t  x;
+    uint8_t  y;
+    uint16_t i;
     
     // Draw rectangles for each pixel
-    for (x = 0; x < VIDEO_RES_X; x++) {
-        for (y = 0; y < VIDEO_RES_Y; y++) {
-            i = (y * VIDEO_RES_X) + x;
+    for (x = 0; x < DISPLAY_RES_X; x++) {
+        for (y = 0; y < DISPLAY_RES_Y; y++) {
+            i = (y * DISPLAY_RES_X) + x;
             rect.x = x * draw_scale;
             rect.y = y * draw_scale;
             rect.w = draw_scale;
@@ -200,15 +182,18 @@ void sdl_draw_step(unsigned char * display) {
     }
 
     // Move current frame/display to last frame for double buffer
-    memcpy(video_last_frame, display, VIDEO_RES_X * VIDEO_RES_Y);
+    memcpy(video_last_frame, display, DISPLAY_RES_X * DISPLAY_RES_Y);
 
     // Render all drawings
     SDL_RenderPresent(renderer);
 }
 
 // Fill audio buffer with a constant frequency set by `oscillator`.
-void sdl_audio_callback(void *user_data, Uint8 *stream, int len) {
+void sdl_audio_callback(void *user_data, uint8_t *stream, int len) {
+    (void) user_data;   // unused
+    (void) len;         // unused
     float *fstream = (float *) stream;
+    
     for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
         oscillator.current_step += oscillator.step_size;
         fstream[i] = sinf(oscillator.current_step);

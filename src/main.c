@@ -4,8 +4,8 @@
 #include <sys/time.h>
 #include <SDL2/SDL.h>
 
-#include "chip8.c"
-#include "peripheral.c"
+#include "chip8.h"
+#include "peripheral.h"
 
 // #define ENABLE_DEBUG_LOG
 
@@ -21,13 +21,12 @@
 #define CPU_HZ_DELAY 1.0 / 700
 #define DISPLAY_HZ_DELAY 1.0 / 60
 
-unsigned char input;
-
 int main(int argc, char *argv[]) {
     struct timeval time;
     double time_sec;
     double next_cycle;
     double next_display;
+    uint8_t input;
 
     if (argc != REQ_ARGC) {
         printf("Incorrect number of arguments.\n");
@@ -47,9 +46,9 @@ int main(int argc, char *argv[]) {
     next_cycle = time_sec;
     next_display = time_sec;
     chip8_next_timer_update = time_sec;  // manually set next timer update time
+    chip8_sound_off = 1;
 
-    while (!quit_flag) {
-
+    while (!peripheral_quit_flag) {
         gettimeofday(&time, NULL);
         time_sec = time.tv_sec + (time.tv_usec / 1000000.0);
 
@@ -68,7 +67,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Pause/unpause audio based on sound timer
-        SDL_PauseAudio(sound_timer == 0);
+        SDL_PauseAudio(chip8_sound_off);
 
         // Very brief sleep to reduce CPU load of this busy loop
         usleep(8);

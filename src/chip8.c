@@ -1,42 +1,31 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "chip8.h"
 
 #define TOTAL_MEMORY 0x1000    // 4096
 #define FONT_START_ADDR 0x50   // 80
 #define PROG_START_ADDR 0x200  // 512
 #define NUM_GP_REGISTERS 16
-#define DISPLAY_RES_X 64
-#define DISPLAY_RES_Y 32
 #define STACK_SIZE 16
 
 #define TIMER_HZ_DELAY 1.0 / 60
 
-// Flags
-unsigned char chip8_display_updated;
-
 // Memory
-unsigned char memory[TOTAL_MEMORY];
+uint8_t memory[TOTAL_MEMORY];
 
 // Registers
-unsigned char V[NUM_GP_REGISTERS];  // last = flag register
-unsigned short pc;  // program counter
-unsigned short I;   // index register
+uint8_t  V[NUM_GP_REGISTERS];  // last = flag register
+uint16_t pc;  // program counter
+uint16_t I;   // index register
 
 // Stack
-unsigned short stack[STACK_SIZE];
-unsigned short sp;  // stack pointer
-
-// Display
-unsigned char chip8_display[DISPLAY_RES_X * DISPLAY_RES_Y];
+uint16_t stack[STACK_SIZE];
+uint16_t sp;  // stack pointer
 
 // Timers
-unsigned char delay_timer;
-unsigned char sound_timer;
-double chip8_next_timer_update;
+uint8_t delay_timer;
+uint8_t sound_timer;
 
 // courtesy of https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
-unsigned char fonts[] = {
+uint8_t fonts[] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -63,36 +52,39 @@ void update_timers(double time_sec) {
         if (sound_timer > 0) {
             sound_timer -= 1;
         }
+        chip8_sound_off = sound_timer == 0;
         chip8_next_timer_update += TIMER_HZ_DELAY;
     }
 }
 
 // Retrieve the next instruction from memory and increment the program counter.
-unsigned short fetch() {
-    unsigned short instruction = memory[pc] << 8 | memory[pc + 1];
+uint16_t fetch(void) {
+    uint16_t instruction = memory[pc] << 8 | memory[pc + 1];
     pc += 2;
     return instruction;
 }
 
-void decode_and_exec(unsigned short instruction, unsigned char key_input) {
-    unsigned char unrecognised = 0;
+void decode_and_exec(uint16_t instruction, uint8_t key_input) {
+    uint8_t unrecognised = 0;
 
-    unsigned char first_nibble = (instruction & 0xF000) >> 12;
-    unsigned char last_nibble  = (instruction & 0x000F);
+    uint8_t first_nibble = (instruction & 0xF000) >> 12;
+    uint8_t last_nibble  = (instruction & 0x000F);
 
-    unsigned char  X   = (instruction & 0x0F00) >> 8;
-    unsigned char  Y   = (instruction & 0x00F0) >> 4;
-    unsigned char  N   = (instruction & 0x000F);
-    unsigned char  NN  = (instruction & 0x00FF);
-    unsigned short NNN = (instruction & 0x0FFF);
+    uint8_t  X   = (instruction & 0x0F00) >> 8;
+    uint8_t  Y   = (instruction & 0x00F0) >> 4;
+    uint8_t  N   = (instruction & 0x000F);
+    uint8_t  NN  = (instruction & 0x00FF);
+    uint16_t NNN = (instruction & 0x0FFF);
 
     // display
-    unsigned short dx;
-    unsigned short dy;
-    unsigned short di;
+    uint16_t dx;  // base col
+    uint16_t dy;  // base row
+    uint16_t dr;  // iter row
+    uint16_t dc;  // iter col
+    uint16_t di;  // buffer index
 
     // Intermediary result variable for overflow/underflow detection
-    unsigned short arithmetic_result;
+    uint16_t arithmetic_result;
 
     switch (first_nibble) {
         case 0x0:
@@ -254,12 +246,12 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
             dy = V[Y] % DISPLAY_RES_Y;
             V[0xF] = 0;
             chip8_display_updated = 1;
-            for (int row = 0; row < N && dy + row < DISPLAY_RES_Y; row++) {
-                unsigned char sprite_data = memory[I + row];
-                for (int col = 0; col < 8 && dx + col < DISPLAY_RES_X; col++) {
+            for (dr = 0; dr < N && dy + dr < DISPLAY_RES_Y; dr++) {
+                uint8_t sprite_data = memory[I + dr];
+                for (dc = 0; dc < 8 && dx + dc < DISPLAY_RES_X; dc++) {
                     // Check each bit in a left to right order
-                    if ((sprite_data & (0b10000000 >> col)) != 0) {
-                        di = (((dy + row) * DISPLAY_RES_X) + dx + col);
+                    if ((sprite_data & (0b10000000 >> dc)) != 0) {
+                        di = (((dy + dr) * DISPLAY_RES_X) + dx + dc);
                         if (chip8_display[di] == 1) {
                             V[0xF] = 1;
                         }
@@ -369,7 +361,7 @@ void decode_and_exec(unsigned short instruction, unsigned char key_input) {
     }
 }
 
-void chip8_init() {
+void chip8_init(void) {
     pc = PROG_START_ADDR;
     I  = 0;
     sp = 0;
@@ -382,16 +374,16 @@ void chip8_init() {
     memset(stack,         0, STACK_SIZE);
     memset(V,             0, NUM_GP_REGISTERS);
 
-    for (int i = 0; i < sizeof(fonts); i++) {
+    for (unsigned long i = 0; i < sizeof(fonts); i++) {
         memory[FONT_START_ADDR + i] = fonts[i];
     }
 
     chip8_display_updated = 0;
 }
 
-int chip8_load_rom(char *rom_path) {
-    unsigned short file_bytes;
-    unsigned char buffer[TOTAL_MEMORY - PROG_START_ADDR] = {0};
+uint8_t chip8_load_rom(const char *rom_path) {
+    uint16_t file_bytes;
+    uint8_t  buffer[TOTAL_MEMORY - PROG_START_ADDR] = {0};
 
     FILE *f = fopen(rom_path, "rb");
     if (!f) {
@@ -426,8 +418,8 @@ int chip8_load_rom(char *rom_path) {
     return 0;
 }
 
-void chip8_step(unsigned key_input, double time_sec) {
+void chip8_step(uint8_t key_input, double time_sec) {
     update_timers(time_sec);
-    unsigned short instruction = fetch();
+    uint16_t instruction = fetch();
     decode_and_exec(instruction, key_input);
 }
