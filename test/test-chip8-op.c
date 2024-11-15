@@ -63,7 +63,7 @@ void test_00E0() {
     memset(chip8_display, 0, DISPLAY_RES_X * DISPLAY_RES_Y);
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xE0;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     for (int i = 0; i < DISPLAY_RES_X * DISPLAY_RES_Y; i++) {
         assert(chip8_display[i] == 0);
     }
@@ -77,7 +77,7 @@ void test_00E0() {
     }
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xE0;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     for (int i = 0; i < DISPLAY_RES_X * DISPLAY_RES_Y; i++) {
         assert(chip8_display[i] == 0);
     }
@@ -91,7 +91,7 @@ void test_00E0() {
     }
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xE0;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     for (int i = 0; i < DISPLAY_RES_X * DISPLAY_RES_Y; i++) {
         assert(chip8_display[i] == 0);
     }
@@ -108,7 +108,7 @@ void test_00EE() {
     stack[0] = 0x400;
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xEE;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x400);
     assert(sp == 0);
 
@@ -121,21 +121,21 @@ void test_1NNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x12;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == PROG_START_ADDR);
 
     // 2. Jump forward small (0x220)
     chip8_init();
     memory[PROG_START_ADDR]     = 0x12;
     memory[PROG_START_ADDR + 1] = 0x20;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x220);
 
     // 3. Jump forward big (0x95b)
     chip8_init();
     memory[PROG_START_ADDR]     = 0x19;
     memory[PROG_START_ADDR + 1] = 0x5B;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x95b);
 
     printf("[PASS] test_1NNN\n");
@@ -147,7 +147,7 @@ void test_2NNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x2A;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0xA00);
     assert(sp == 1);
     assert(stack[0] == 0x202);
@@ -158,11 +158,11 @@ void test_2NNN() {
     memory[PROG_START_ADDR + 1] = 0x00;
     memory[0x0400] = 0x27;
     memory[0x0401] = 0xFF;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x400);
     assert(sp == 1);
     assert(stack[0] == 0x202);
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x7FF);
     assert(sp == 2);
     assert(stack[0] == 0x202);
@@ -177,14 +177,14 @@ void test_3XNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x30;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     // 2. false/no skip: V0 == 1 where V0 = 0
     chip8_init();
     memory[PROG_START_ADDR]     = 0x30;
     memory[PROG_START_ADDR + 1] = 0x01;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x202);
 
     // 3. true/skip: VB == 0xFF, where VB = 0xFF
@@ -192,7 +192,7 @@ void test_3XNN() {
     V[0xB] = 0xFF;
     memory[PROG_START_ADDR]     = 0x3B;
     memory[PROG_START_ADDR + 1] = 0xFF;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     printf("[PASS] test_3XNN\n");
@@ -204,14 +204,14 @@ void test_4XNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x40;
     memory[PROG_START_ADDR + 1] = 0x01;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     // 1. false/no skip: V0 != 0, where V0 = 0
     chip8_init();
     memory[PROG_START_ADDR]     = 0x40;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x202);
 
     // 3. true/skip: VC != 0xA1, where VB = 0xDD
@@ -219,7 +219,7 @@ void test_4XNN() {
     V[0xC] = 0xDD;
     memory[PROG_START_ADDR]     = 0x4C;
     memory[PROG_START_ADDR + 1] = 0xA1;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     printf("[PASS] test_4XNN\n");
@@ -231,14 +231,14 @@ void test_5XY0() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x50;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     // 2. true/skip: V0 == V1 where V0 & V1 = 0
     chip8_init();
     memory[PROG_START_ADDR]     = 0x50;
     memory[PROG_START_ADDR + 1] = 0x10;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     // 3. false/no skip: V0 == V1 where V0 = 0 & V1 = 1
@@ -246,7 +246,7 @@ void test_5XY0() {
     V[0x1] = 1;
     memory[PROG_START_ADDR]     = 0x50;
     memory[PROG_START_ADDR + 1] = 0x10;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x202);
 
     // 4. true/skip: V5 == V2 where V5 = 1 & V1 = 1
@@ -255,7 +255,7 @@ void test_5XY0() {
     V[0x5] = 1;
     memory[PROG_START_ADDR]     = 0x52;
     memory[PROG_START_ADDR + 1] = 0x50;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     // 5. false/no skip: VA == VB where VA = 0D & VB = A1
@@ -264,7 +264,7 @@ void test_5XY0() {
     V[0xB] = 0xA1;
     memory[PROG_START_ADDR]     = 0x5A;
     memory[PROG_START_ADDR + 1] = 0xB0;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x202);
 
     printf("[PASS] test_5XY0\n");
@@ -276,42 +276,42 @@ void test_6XNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x60;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0x00);
 
     // 2. Set V0 to 0xFF
     chip8_init();
     memory[PROG_START_ADDR]     = 0x60;
     memory[PROG_START_ADDR + 1] = 0xFF;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0xFF);
     
     // 3. Set V1 to 0xFF
     chip8_init();
     memory[PROG_START_ADDR]     = 0x61;
     memory[PROG_START_ADDR + 1] = 0x5B;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x1] == 0x5B);
     
     // 4. Set V9 to 0xAA
     chip8_init();
     memory[PROG_START_ADDR]     = 0x69;
     memory[PROG_START_ADDR + 1] = 0xAA;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x9] == 0xAA);
 
     // 4. Set VB to 0xF4
     chip8_init();
     memory[PROG_START_ADDR]     = 0x6B;
     memory[PROG_START_ADDR + 1] = 0xF4;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0xB] == 0xF4);
 
     // 5. Set VF to 0x02
     chip8_init();
     memory[PROG_START_ADDR]     = 0x6F;
     memory[PROG_START_ADDR + 1] = 0x02;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0xF] == 0x02);
 
     // 6. Set VA to 0x50 then 0x01
@@ -320,9 +320,9 @@ void test_6XNN() {
     memory[PROG_START_ADDR + 1] = 0x50;
     memory[PROG_START_ADDR + 2] = 0x6A;
     memory[PROG_START_ADDR + 3] = 0x01;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0xA] == 0x50);
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0xA] == 0x01);
 
     printf("[PASS] test_6XNN\n");
@@ -334,14 +334,14 @@ void test_7XNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x70;
     memory[PROG_START_ADDR + 1] = 0x01;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0x01);
 
     // 2. Add 0x10 to untouched register (0)
     chip8_init();
     memory[PROG_START_ADDR]     = 0x71;
     memory[PROG_START_ADDR + 1] = 0x10;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x1] == 0x10);
 
     // 3. Add 0x20 then 0x01
@@ -350,9 +350,9 @@ void test_7XNN() {
     memory[PROG_START_ADDR + 1] = 0x20;
     memory[PROG_START_ADDR + 2] = 0x72;
     memory[PROG_START_ADDR + 3] = 0x01;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x2] == 0x20);
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x2] == 0x21);
 
     // 4. Add 0xDF then 0x20
@@ -361,9 +361,9 @@ void test_7XNN() {
     memory[PROG_START_ADDR + 1] = 0xDF;
     memory[PROG_START_ADDR + 2] = 0x70;
     memory[PROG_START_ADDR + 3] = 0x20;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0xDF);
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0xFF);
 
     // 5. Overflow. Add 0xFF then 0x01
@@ -372,9 +372,9 @@ void test_7XNN() {
     memory[PROG_START_ADDR + 1] = 0xFF;
     memory[PROG_START_ADDR + 2] = 0x70;
     memory[PROG_START_ADDR + 3] = 0x01;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0xFF);
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0x00);
 
     printf("[PASS] test_7XNN\n");
@@ -386,7 +386,7 @@ void test_8XY0() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x10;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == V[0x1]);
 
     // 2. V0 = V1 where VY = 5
@@ -394,7 +394,7 @@ void test_8XY0() {
     V[0x1] = 5;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x10;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 5);
     assert(V[0x1] == 5);
 
@@ -404,7 +404,7 @@ void test_8XY0() {
     V[0x2] = 0x9A;
     memory[PROG_START_ADDR]     = 0x85;
     memory[PROG_START_ADDR + 1] = 0x20;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x5] == 0x9A);
     assert(V[0x2] == 0x9A);
 
@@ -417,7 +417,7 @@ void test_8XY1() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x11;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b00000000);
     assert(V[0x1] == 0b00000000);
 
@@ -427,7 +427,7 @@ void test_8XY1() {
     V[0x1] = 0b10101010;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x11;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b10101010);
     assert(V[0x1] == 0b10101010);
 
@@ -437,7 +437,7 @@ void test_8XY1() {
     V[0x1] = 0b10101010;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x11;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b11111010);
     assert(V[0x1] == 0b10101010);
     
@@ -447,7 +447,7 @@ void test_8XY1() {
     V[0x1] = 0b00110000;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x11;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b11110000);
     assert(V[0x1] == 0b00110000);
     
@@ -457,7 +457,7 @@ void test_8XY1() {
     V[0xA] = 0b01010101;
     memory[PROG_START_ADDR]     = 0x89;
     memory[PROG_START_ADDR + 1] = 0xA1;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x9] == 0b11111111);
     assert(V[0xA] == 0b01010101);
 
@@ -472,7 +472,7 @@ void test_8XY2() {
     V[0x1] = 0b10101010;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x12;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b00000000);
     assert(V[0x1] == 0b10101010);
 
@@ -482,7 +482,7 @@ void test_8XY2() {
     V[0x1] = 0b10101010;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x12;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b10000010);
     assert(V[0x1] == 0b10101010);
 
@@ -492,7 +492,7 @@ void test_8XY2() {
     V[0x5] = 0b01010101;
     memory[PROG_START_ADDR]     = 0x84;
     memory[PROG_START_ADDR + 1] = 0x52;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x4] == 0b01010101);
     assert(V[0x5] == 0b01010101);
 
@@ -507,7 +507,7 @@ void test_8XY3() {
     V[0x1] = 0b10101010;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x13;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b10100101);
     assert(V[0x1] == 0b10101010);
     
@@ -517,7 +517,7 @@ void test_8XY3() {
     V[0x3] = 0b10101010;
     memory[PROG_START_ADDR]     = 0x82;
     memory[PROG_START_ADDR + 1] = 0x33;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x2] == 0b00000000);
     assert(V[0x3] == 0b10101010);
 
@@ -530,7 +530,7 @@ void test_8XY4() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x14;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0);
     assert(V[0x1] == 0);
     assert(V[0xF] == 0);  // no overflow
@@ -541,7 +541,7 @@ void test_8XY4() {
     V[0x1] = 0x12;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x14;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0xDF);
     assert(V[0x1] == 0x12);
     assert(V[0xF] == 0);  // no overflow
@@ -552,7 +552,7 @@ void test_8XY4() {
     V[0x1] = 0x01;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x14;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0x00);
     assert(V[0x1] == 0x01);
     assert(V[0xF] == 1);  // overflow
@@ -562,7 +562,7 @@ void test_8XY4() {
     V[0x7] = 0x33;
     memory[PROG_START_ADDR]     = 0x87;
     memory[PROG_START_ADDR + 1] = 0x74;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x7] == 0x66);
     assert(V[0x4] == 0);  // no overflow
     
@@ -572,7 +572,7 @@ void test_8XY4() {
     V[0xE] = 0xDA;
     memory[PROG_START_ADDR]     = 0x87;
     memory[PROG_START_ADDR + 1] = 0xE4;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x7] == 0x0D);
     assert(V[0xE] == 0xDA);
     assert(V[0xF] == 1);  // overflow
@@ -588,7 +588,7 @@ void test_8XY5() {
     V[0x1] = 0x01;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x15;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0x04);
     assert(V[0x1] == 0x01);
     assert(V[0xF] == 1);  // no underflow
@@ -599,7 +599,7 @@ void test_8XY5() {
     V[0x1] = 0x06;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x15;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0xFF);
     assert(V[0x1] == 0x06);
     assert(V[0xF] == 0);  // underflow
@@ -615,7 +615,7 @@ void test_8XY6() {
     V[0x1] = 0b00000000;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x16;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b01010101);
     // assert(V[0x1] == 0b10101010);  // Ambiguous
     assert(V[0xF] == 0);  // 0 was shifted out of the register
@@ -626,7 +626,7 @@ void test_8XY6() {
     V[0x1] = 0b00000000;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x16;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b01111111);
     // assert(V[0x1] == 0b11111111);  // Ambiguous
     assert(V[0xF] == 1);  // 1 was shifted out of the register
@@ -642,7 +642,7 @@ void test_8XY7() {
     V[0x1] = 0x10;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x17;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0x0F);
     assert(V[0x1] == 0x10);
     assert(V[0xF] == 1);  // no underflow
@@ -653,7 +653,7 @@ void test_8XY7() {
     V[0x1] = 0x05;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x17;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0xFF);
     assert(V[0x1] == 0x05);
     assert(V[0xF] == 0);  // underflow
@@ -669,7 +669,7 @@ void test_8XYE() {
     V[0x1] = 0b00000000;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x1E;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b10101010);
     // assert(V[0x1] == 0b01010101);  // Ambiguous
     assert(V[0xF] == 0);  // 0 was shifted out of the register
@@ -680,7 +680,7 @@ void test_8XYE() {
     V[0x1] = 0b00000000;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x1E;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0b11111110);
     // assert(V[0x1] == 0b11111111);  // Ambiguous
     assert(V[0xF] == 1);  // 1 was shifted out of the register
@@ -694,7 +694,7 @@ void test_9XY0() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0x90;
     memory[PROG_START_ADDR + 1] = 0x10;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x202);
 
     // 2. true/skip: V0 != V1 where V0 = 0 & V1 = 1
@@ -702,7 +702,7 @@ void test_9XY0() {
     V[0x1] = 1;
     memory[PROG_START_ADDR]     = 0x90;
     memory[PROG_START_ADDR + 1] = 0x10;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     // 3. false/no skip: V5 != V2 where V5 = 1 & V1 = 1
@@ -711,7 +711,7 @@ void test_9XY0() {
     V[0x5] = 1;
     memory[PROG_START_ADDR]     = 0x92;
     memory[PROG_START_ADDR + 1] = 0x50;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x202);
 
     // 4. true/skip: VA != VB where VA = 0D & VB = A1
@@ -720,7 +720,7 @@ void test_9XY0() {
     V[0xB] = 0xA1;
     memory[PROG_START_ADDR]     = 0x9A;
     memory[PROG_START_ADDR + 1] = 0xB0;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x204);
 
     printf("[PASS] test_9XY0\n");
@@ -732,21 +732,21 @@ void test_ANNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0xA0;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x0000);
     
     // 2. Set to 0x00A
     chip8_init();
     memory[PROG_START_ADDR]     = 0xA0;
     memory[PROG_START_ADDR + 1] = 0x0A;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x000A);
 
     // 3. Set to 0x100
     chip8_init();
     memory[PROG_START_ADDR]     = 0xA1;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x0100);
 
     printf("[PASS] test_ANNN\n");
@@ -758,7 +758,7 @@ void test_BNNN() {
     chip8_init();
     memory[PROG_START_ADDR]     = 0xB3;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x300);
 
     // 1. V0 = 5
@@ -766,7 +766,7 @@ void test_BNNN() {
     V[0] = 5;
     memory[PROG_START_ADDR]     = 0xB3;
     memory[PROG_START_ADDR + 1] = 0x00;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == 0x305);
 
     printf("[PASS] test_BNNN\n");
@@ -779,7 +779,7 @@ void test_EX9E() {
     V[0x0] = 0;  // skip trigger key
     memory[PROG_START_ADDR]     = 0xE0;
     memory[PROG_START_ADDR + 1] = 0x9E;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == PROG_START_ADDR + 2);
 
     // 2. 0 key down and is skip key
@@ -787,7 +787,7 @@ void test_EX9E() {
     V[0x0] = 0;
     memory[PROG_START_ADDR]     = 0xE0;
     memory[PROG_START_ADDR + 1] = 0x9E;
-    chip8_step(0x10);
+    chip8_step(0x10, 0.0);
     assert(pc == PROG_START_ADDR + 4);
 
     // 3. Non-skip key down
@@ -795,7 +795,7 @@ void test_EX9E() {
     V[0x0] = 0xB;
     memory[PROG_START_ADDR]     = 0xE0;
     memory[PROG_START_ADDR + 1] = 0x9E;
-    chip8_step(0x15);
+    chip8_step(0x15, 0.0);
     assert(pc == PROG_START_ADDR + 2);
     
     // 4. Different register holding skip key
@@ -803,7 +803,7 @@ void test_EX9E() {
     V[0xA] = 0xA;
     memory[PROG_START_ADDR]     = 0xEA;
     memory[PROG_START_ADDR + 1] = 0x9E;
-    chip8_step(0x1A);
+    chip8_step(0x1A, 0.0);
     assert(pc == PROG_START_ADDR + 4);
 
     printf("[PASS] test_EX9E\n");
@@ -816,7 +816,7 @@ void test_EXA1() {
     V[0x0] = 0x0;
     memory[PROG_START_ADDR]     = 0xE0;
     memory[PROG_START_ADDR + 1] = 0xA1;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(pc == PROG_START_ADDR + 4);
     
     // 2. 0 key down and is no skip key
@@ -824,7 +824,7 @@ void test_EXA1() {
     V[0x0] = 0x0;
     memory[PROG_START_ADDR]     = 0xE0;
     memory[PROG_START_ADDR + 1] = 0xA1;
-    chip8_step(0x10);
+    chip8_step(0x10, 0.0);
     assert(pc == PROG_START_ADDR + 2);
 
     // 3. Non-0 no skip key
@@ -832,7 +832,7 @@ void test_EXA1() {
     V[0x0] = 0x4;
     memory[PROG_START_ADDR]     = 0xE0;
     memory[PROG_START_ADDR + 1] = 0xA1;
-    chip8_step(0x14);
+    chip8_step(0x14, 0.0);
     assert(pc == PROG_START_ADDR + 2);
 
     // 4. Different register
@@ -840,7 +840,7 @@ void test_EXA1() {
     V[0xC] = 0xA;
     memory[PROG_START_ADDR]     = 0xEC;
     memory[PROG_START_ADDR + 1] = 0xA1;
-    chip8_step(0x18);
+    chip8_step(0x18, 0.0);
     assert(pc == PROG_START_ADDR + 4);
 
     printf("[PASS] test_EXA1\n");
@@ -853,7 +853,7 @@ void test_FX07() {
     delay_timer = 0;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x07;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x0] == 0);
 
     chip8_init();
@@ -861,7 +861,7 @@ void test_FX07() {
     delay_timer = 20;
     memory[PROG_START_ADDR]     = 0xF5;
     memory[PROG_START_ADDR + 1] = 0x07;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(V[0x5] == 20);
 
     printf("[PASS] test_FX07\n");
@@ -874,7 +874,7 @@ void test_FX15() {
     delay_timer = 0;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x15;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(delay_timer == 100);
 
     chip8_init();
@@ -882,7 +882,7 @@ void test_FX15() {
     delay_timer = 20;
     memory[PROG_START_ADDR]     = 0xF5;
     memory[PROG_START_ADDR + 1] = 0x15;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(delay_timer == 50);
 
     printf("[PASS] test_FX15\n");
@@ -895,7 +895,7 @@ void test_FX18() {
     sound_timer = 100;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x18;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(sound_timer == 0);
 
     chip8_init();
@@ -903,7 +903,7 @@ void test_FX18() {
     sound_timer = 20;
     memory[PROG_START_ADDR]     = 0xF5;
     memory[PROG_START_ADDR + 1] = 0x18;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(sound_timer == 40);
 
     printf("[PASS] test_FX18\n");
@@ -916,7 +916,7 @@ void test_FX0A() {
     V[0x0] = 0xFF;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x0A;
-    chip8_step(0x00);
+    chip8_step(0x00, 0.0);
     assert(pc == PROG_START_ADDR);
     assert(V[0x0] == 0xFF);
 
@@ -925,7 +925,7 @@ void test_FX0A() {
     V[0x0] = 0xFF;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x0A;
-    chip8_step(0x10);
+    chip8_step(0x10, 0.0);
     assert(pc == PROG_START_ADDR + 2);
     assert(V[0x0] == 0x00);
 
@@ -934,7 +934,7 @@ void test_FX0A() {
     V[0x0] = 0xFF;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x0A;
-    chip8_step(0x1B);
+    chip8_step(0x1B, 0.0);
     assert(pc == PROG_START_ADDR + 2);
     assert(V[0x0] == 0x0B);
 
@@ -943,7 +943,7 @@ void test_FX0A() {
     V[0x4] = 0xFF;
     memory[PROG_START_ADDR]     = 0xF4;
     memory[PROG_START_ADDR + 1] = 0x0A;
-    chip8_step(0x1B);
+    chip8_step(0x1B, 0.0);
     assert(pc == PROG_START_ADDR + 2);
     assert(V[0x4] == 0x0B);
 
@@ -956,14 +956,14 @@ void test_FX1E() {
     V[0x0] = 5;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x1E;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 5);
 
     chip8_init();
     V[0x4] = 9;
     memory[PROG_START_ADDR]     = 0xF4;
     memory[PROG_START_ADDR + 1] = 0x1E;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 9);
 
     printf("[PASS] test_FX1E\n");
@@ -976,7 +976,7 @@ void test_FX29() {
     V[0x0] = 0;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x29;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == FONT_START_ADDR);
 
     // 2. Set index to the 8th sprite 8
@@ -984,7 +984,7 @@ void test_FX29() {
     V[0x0] = 0x8;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x29;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == FONT_START_ADDR + 0x28);
 
     // 3. Set index to the last sprite F
@@ -992,7 +992,7 @@ void test_FX29() {
     V[0x0] = 0xF;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x29;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == FONT_START_ADDR + 0x4B);
 
     printf("[PASS] test_FX29\n");
@@ -1006,7 +1006,7 @@ void test_FX33() {
     I = 0;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x33;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0);
     assert(memory[0] == 0);
     assert(memory[1] == 0);
@@ -1018,7 +1018,7 @@ void test_FX33() {
     I = 0;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x33;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0);
     assert(memory[0] == 2);
     assert(memory[1] == 4);
@@ -1030,7 +1030,7 @@ void test_FX33() {
     I = 0x400;
     memory[PROG_START_ADDR]     = 0xF2;
     memory[PROG_START_ADDR + 1] = 0x33;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x400);
     assert(memory[0x400] == 1);
     assert(memory[0x401] == 8);
@@ -1049,7 +1049,7 @@ void test_FX55() {
     I = 0x300;
     memory[PROG_START_ADDR]     = 0xF0;
     memory[PROG_START_ADDR + 1] = 0x55;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x300);  // ambiguous
     assert(memory[0x300] == 44);
     assert(memory[0x301] == 0);
@@ -1063,7 +1063,7 @@ void test_FX55() {
     I = 0x300;
     memory[PROG_START_ADDR]     = 0xF2;
     memory[PROG_START_ADDR + 1] = 0x55;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x300);  // ambiguous
     assert(memory[0x300] == 44);
     assert(memory[0x301] == 55);
@@ -1080,7 +1080,7 @@ void test_FX55() {
     I = 0x300;
     memory[PROG_START_ADDR]     = 0xFF;
     memory[PROG_START_ADDR + 1] = 0x55;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x300);  // ambiguous
     assert(memory[0x300] == 44);
     assert(memory[0x301] == 55);
@@ -1112,7 +1112,7 @@ void test_FX65() {
     memory[0x300] = 12;
     memory[0x301] = 42;
     memory[0x302] = 55;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x300);  // ambiguous
     assert(V[0x0] == 12);
     assert(V[0x1] == 0);
@@ -1126,7 +1126,7 @@ void test_FX65() {
     memory[0x300] = 12;
     memory[0x301] = 42;
     memory[0x302] = 55;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x300);  // ambiguous
     assert(V[0x0] == 12);
     assert(V[0x1] == 42);
@@ -1146,7 +1146,7 @@ void test_FX65() {
     memory[0x306] = 250;
     memory[0x307] = 33;
     memory[0x308] = 255;
-    chip8_step(0);
+    chip8_step(0, 0.0);
     assert(I == 0x300);  // ambiguous
     assert(V[0x0] == 12);
     assert(V[0x1] == 42);
