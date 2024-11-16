@@ -9,6 +9,8 @@
 #define AUDIO_BUFFER_SIZE 512
 #define AUDIO_OSCILLATION_RATE 440.0f
 
+void sdl_audio_callback(void *, Uint8 *, int);
+
 struct {
     float current_step;
     float step_size;
@@ -16,16 +18,43 @@ struct {
 
 SDL_Window *window;
 SDL_Renderer *renderer;
-
-// Extra video buffer for double buffering
-uint8_t video_last_frame[DISPLAY_RES_X * DISPLAY_RES_Y];
-
 uint8_t draw_scale;
 
-void sdl_audio_callback(void *, Uint8 *, int);
+// Video single/double buffering
+uint8_t (*buffer_draw_colour_cmp_fn)(uint8_t *, uint16_t);
+void (*buffer_fn)(uint8_t *);
+uint8_t video_last_frame[DISPLAY_RES_X * DISPLAY_RES_Y];
 
-uint8_t sdl_init(char scale) {
+// Check only the current display buffer to determine if a pixel should be on.
+uint8_t single_buffer_colour(uint8_t *display, uint16_t i) {
+    return display[i];
+}
+
+// Check both the current and last display buffer to determine if a pixel should be on.
+uint8_t double_buffer_colour(uint8_t *display, uint16_t i) {
+    return display[i] | video_last_frame[i];
+}
+
+// Do nothing with the current buffer.
+void single_buffer_post_draw(uint8_t *display) {  // do nothing
+    (void) display;
+}
+
+// Copy the current buffer into the last frame buffer for next draw double buffering.
+void double_buffer_post_draw(uint8_t *display) {
+    memcpy(video_last_frame, display, DISPLAY_RES_X * DISPLAY_RES_Y);
+}
+
+uint8_t sdl_init(uint8_t scale, uint8_t double_buffer) {
     draw_scale = scale;
+
+    if (double_buffer) {
+        buffer_draw_colour_cmp_fn = &double_buffer_colour;
+        buffer_fn = &double_buffer_post_draw;
+    } else {
+        buffer_draw_colour_cmp_fn = &single_buffer_colour;
+        buffer_fn = &single_buffer_post_draw;  // do nothing
+    }
 
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
@@ -171,8 +200,9 @@ void sdl_draw_step(uint8_t *display) {
             rect.y = y * draw_scale;
             rect.w = draw_scale;
             rect.h = draw_scale;
-            // Double buffer
-            if (display[i] | video_last_frame[i]) {
+
+            // Call single or double buffer cmp based on how sdl_init was called
+            if ((*buffer_draw_colour_cmp_fn)(display, i)) {
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             } else {
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -181,8 +211,8 @@ void sdl_draw_step(uint8_t *display) {
         }
     }
 
-    // Move current frame/display to last frame for double buffer
-    memcpy(video_last_frame, display, DISPLAY_RES_X * DISPLAY_RES_Y);
+    // Call buffering function for single (do nothing) or double buffering.
+    (*buffer_fn)(display);
 
     // Render all drawings
     SDL_RenderPresent(renderer);

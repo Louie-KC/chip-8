@@ -10,8 +10,11 @@ char peripheral_quit_flag;
 /*
  * Initialise the front end of the emulator with SDL.
  * Audio, Video and Events (user input) are enabled.
+ * 
+ * @param1: render scale
+ * @param2: use double buffering
  */
-uint8_t sdl_init(char);
+uint8_t sdl_init(uint8_t, uint8_t);
 
 /*
  * Tidy-up of SDL. Close, destroy and quit all SDL contexts/objects.
@@ -49,6 +52,8 @@ uint8_t sdl_input_step(void);
  * window/renderer combined with the previous frame (double buffering).
  * 
  * Updates the previous frame buffer with the passed in buffer values.
+ * 
+ * @param: Pointer to 64x32 CHIP-8 display buffer
  */
 void sdl_draw_step(uint8_t *);
 

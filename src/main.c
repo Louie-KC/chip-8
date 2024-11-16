@@ -1,17 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/time.h>
 #include <SDL2/SDL.h>
 
 #include "chip8.h"
 #include "peripheral.h"
 
-#define REQ_ARGC 2
-#define USAGE "[ROM file path]"
+#define MIN_ARGC 2
+#define MAX_ARGC 4
+#define USAGE "rom_path [1..256] (draw scale) [single|double] (buffering)"
 
 #define CPU_HZ_DELAY 1.0 / 700
 #define DISPLAY_HZ_DELAY 1.0 / 60
+
+#define DEFAULT_RENDER_SCALE 8
+#define DEFAULT_USE_DOUBLE_BUFFER 1
 
 #ifdef DEBUG
 unsigned int steps_can_run = 0;
@@ -96,14 +101,38 @@ int main(int argc, char *argv[]) {
     double next_display;
 #endif  // n DEBUG
     uint8_t input;
-
-    if (argc != REQ_ARGC) {
+    uint8_t render_scale = DEFAULT_RENDER_SCALE;
+    uint8_t use_double_buffering = DEFAULT_USE_DOUBLE_BUFFER;
+    
+    // Args check and parse
+    if (argc < MIN_ARGC || argc > MAX_ARGC) {
         printf("Incorrect number of arguments.\n");
         printf("Usage: %s %s\n", argv[0], USAGE);
         return -1;
     }
+    for (int i = 2; i < argc; i++) {
+        int failure = 1;
+        if (argv[i][0] == '-') {  // buffering
+            if (strncmp(argv[i], "-single", 9) == 0) {
+                use_double_buffering = 0;
+                failure = 0;
+            }
+            else if (strncmp(argv[i], "-double", 9) == 0) {
+                use_double_buffering = 1;
+                failure = 0;
+            }
+        } else {  // render scale
+            render_scale = atoi(argv[i]);
+            failure = render_scale == 0;
+        } if (failure) {
+            printf("Bad argument '%s'\n", argv[i]);
+            printf("Usage: %s %s\n", argv[0], USAGE);
+            return -1;
+        }
+    }
 
-    if (sdl_init(8) != 0) {
+    // Initialisation
+    if (sdl_init(render_scale, use_double_buffering) != 0) {
         return -1;
     }
 
@@ -122,10 +151,13 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
     debug_print_keys();
 #endif  // DEBUG
+
+    // Emulation loop
     while (!peripheral_quit_flag) {
         debug();
         gettimeofday(&time, NULL);
         time_sec = time.tv_sec + (time.tv_usec / 1000000.0);
+        
 #ifndef DEBUG
         if (time_sec > next_cycle) {
 #endif  // n DEBUG

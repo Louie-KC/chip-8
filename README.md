@@ -12,7 +12,12 @@ An exercise in developing the "hello world" of emudev, CHIP-8 (a virtual machine
 make
 
 # Run executable
-./ch8 [ROM file path]
+./ch8 rom_path
+```
+Extra arguments can be provided to specify the render scale (default 8) and use of single or double buffering (default double).
+```
+# Run executable with render scale of 4 and single buffering
+./ch8 rom_path 4 -single
 ```
 
 ### Debugger
@@ -20,13 +25,13 @@ The executable can be built/compiled in a debug mode, enabling the user to step 
 
 <img src="https://github.com/user-attachments/assets/c048e729-5b08-4b6d-b2ec-2eac55366dd7" alt="debugger-demo-gif" width="900"/>
 
-Compile debug mode executable.
+Compile and run debug mode executable.
 ```
 # Compile the `debug` target
 make debug
 
 # Run debug mode executable
-./ch8 [ROM file path]
+./ch8 rom_path
 ```
 
 Debugger controls:
@@ -47,7 +52,7 @@ Starting with the '1' key below the F keys, a 4x4 grid is mapped to the CHIP-8 k
 ## SDL2
 Developed on an ARM Mac with SDL2 installed via Homebrew.
 
-## Roms
+## ROMs
 * IBM.ch8 : https://github.com/loktar00/chip8/blob/master/roms/IBM%20Logo.ch8
 * test_opcode.ch8 : https://github.com/corax89/chip8-test-rom/blob/master/test_opcode.ch8
 
