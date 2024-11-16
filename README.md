@@ -30,14 +30,16 @@ make debug
 ```
 
 Debugger controls:
-* s         - step 1 instruction.
-* s [n]     - step n instructions.
-* i         - print chip8 state.
-* m [a]     - print value in memory at address a (in hex).
-* m [a] [l] - print values in memory at address a, to a+l (a and l are in hex).
-* n         - print the next opcode/instruction to be executed.
-* h         - print this list/controls again.
-* q         - quit.
+```
+s         - step 1 instruction.
+s [n]     - step n instructions.
+i         - print chip8 state.
+m [a]     - print value in memory at address a (in hex).
+m [a] [l] - print values in memory at address a, to a+l (a and l are in hex).
+n         - print the next opcode/instruction to be executed.
+h         - print this list/controls again.
+q         - quit.
+```
 
 ## Inputs
 Starting with the '1' key below the F keys, a 4x4 grid is mapped to the CHIP-8 keypad. Scan codes are used for DVORAK layout compatibility.
