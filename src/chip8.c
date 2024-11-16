@@ -357,9 +357,49 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             unrecognised = 1;
     }
     if (unrecognised) {
-        printf("[INFO] decode_and_exec: Unrecognised instruction '%x'\n", instruction);
+        printf("[INFO] decode_and_exec: Unrecognised instruction '%04x'\n", instruction);
     }
 }
+
+#ifdef DEBUG
+void chip8_print_state() {
+    printf("* Registers\n");
+    printf("V0: %02x, V1: %02x, V2: %02x, V3: %02x\n", V[0], V[1], V[2], V[3]);
+    printf("V4: %02x, V5: %02x, V6: %02x, V7: %02x\n", V[4], V[5], V[6], V[7]);
+    printf("V8: %02x, V9: %02x, VA: %02x, VB: %02x\n", V[8], V[9], V[0xA], V[0xB]);
+    printf("VC: %02x, VD: %02x, VE: %02x, VF: %02x\n", V[0xC], V[0xD], V[0xE], V[0xF]);
+
+    printf("\npc: %03x (%u)\n", pc, pc);
+    printf("I : %03x (%u)\n", I, I);
+    printf("sp: %02x (%u)\n", sp, sp);
+
+    printf("\n* Stack");
+    if (sp) {
+        for (int i = sp - 1; i >= 0; i--) {
+            printf("\n%u: %03x", i, stack[i]);
+        }
+    } else {
+        printf("\nEmpty stack");
+    }
+    printf("\n");
+}
+
+void chip8_print_memory(uint16_t addr, uint16_t range) {
+    u_int16_t i;
+    printf("* Memory [0x%03x...0x%03x]", addr, addr + range);
+    for (i = addr; i < addr + range; i++) {
+        if (i % 4 == 0) {
+            printf("\n");
+        }
+        printf("%x: %02x ", i, memory[i]);
+    }
+    printf("\n");
+}
+
+void chip8_print_next_op(void) {
+    printf("op: %04x at addr %03x\n", memory[pc] << 8 | memory[pc + 1], pc);
+}
+#endif  // DEBUG
 
 void chip8_init(void) {
     pc = PROG_START_ADDR;

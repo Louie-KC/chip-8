@@ -14,6 +14,12 @@ uint8_t chip8_display_updated;
 uint8_t chip8_sound_off;
 double chip8_next_timer_update;
 
+#ifdef DEBUG
+void chip8_print_state(void);
+void chip8_print_memory(uint16_t, uint16_t);
+void chip8_print_next_op(void);
+#endif  // DEBUG
+
 /*
  * Initialise the chip8 emulator.
  */
