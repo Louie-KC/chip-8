@@ -56,7 +56,11 @@ Developed on an ARM Mac with SDL2 installed via Homebrew.
 * IBM.ch8 : https://github.com/loktar00/chip8/blob/master/roms/IBM%20Logo.ch8
 * test_opcode.ch8 : https://github.com/corax89/chip8-test-rom/blob/master/test_opcode.ch8
 
-## References
+## CHIP8 References
 1. https://en.wikipedia.org/wiki/CHIP-8
 2. https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
 3. https://blog.fredrb.com/2023/08/08/audio-programming-note-sdl/
+
+## SUPER-CHIP References
+1. https://github.com/Chromatophore/HP48-Superchip
+2. https://github.com/trapexit/chip-8_documentation

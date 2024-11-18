@@ -8,6 +8,8 @@
 
 #define TIMER_HZ_DELAY 1.0 / 60
 
+#define SUPER_CHIP_RPL_FILE "rpl-flags.bin"
+
 // Memory
 uint8_t memory[TOTAL_MEMORY];
 
@@ -23,6 +25,9 @@ uint16_t sp;  // stack pointer
 // Timers
 uint8_t delay_timer;
 uint8_t sound_timer;
+
+// (SUPER-CHIP 1.0) low/high resolution flag
+uint8_t high_res_mode;
 
 // courtesy of https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
 uint8_t fonts[] = {
@@ -86,6 +91,8 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
     // Intermediary result variable for overflow/underflow detection
     uint16_t arithmetic_result;
 
+    FILE *rpl_f;
+
     switch (first_nibble) {
         case 0x0:
             switch (instruction) {
@@ -99,6 +106,22 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 case 0x00EE:
                     pc = stack[--sp];
                     break;
+
+                // 00FD (SUPER-CHIP 1.0): Exit interpreter
+                case 0x00FD:
+                    chip8_exit_flag = 1;
+                    break;
+                
+                // 00FE (SUPER-CHIP 1.0): Disable high resolution mode
+                case 0x00FE:
+                    high_res_mode = 0;
+                    break;
+
+                // 00FF (SUPER-CHIP 1.0): Enable high resolution mode
+                case 0x00FF:
+                    high_res_mode = 1;
+                    break;
+
                 default:
                     unrecognised = 1;
             }
@@ -252,11 +275,17 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     // Check each bit in a left to right order
                     if ((sprite_data & (0b10000000 >> dc)) != 0) {
                         di = (((dy + dr) * DISPLAY_RES_X) + dx + dc);
+                        di = di * (2 - high_res_mode);
                         if (chip8_display[di] == 1) {
                             V[0xF] = 1;
                         }
                         // Flip the display pixels bit
                         chip8_display[di] ^= 1;
+                        if (!high_res_mode) {
+                            chip8_display[di + 1] ^= 1;
+                            chip8_display[di + DISPLAY_RES_X] ^= 1;
+                            chip8_display[di + DISPLAY_RES_X + 1] ^= 1;
+                        }
                     }
                 }
             }
@@ -322,9 +351,18 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 
                 // FX29: Font character
                 case 0x29:
-                    I = FONT_START_ADDR + (V[X] * 5);  // 5 bytes per char sprite
+                    if (!(V[X] & 0xF0)) {  // (SUPER-CHIP 1.0) low res mode
+                        I = FONT_START_ADDR + (V[X] * 5);  // 5 bytes per char sprite
+                        break;
+                    } else {  // (SUPER-CHIP 1.0) high res mode
+                        // fall through to FX30 (SUPER-CHIP 1.1 op)
+                    }
+
+                // FX30 (SUPER-CHIP 1.1): Large font character
+                case 0x30:
+                    printf("TODO: FX30\n");
                     break;
-                
+
                 // FX33: Binary-coded decimal conversion. Lay out digits starting at I
                 case 0x33:
                     memory[I]     = V[X] / 100 % 10;
@@ -347,7 +385,25 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     }
                     // I += X + 1;  // Ambiguous: old ROMS expect this
                     break;
-                
+
+                // FX75 (SUPER-CHIP 1.0): Store V0..VX in RPL user flags  TODO
+                case 0x75:
+                    rpl_f = fopen(SUPER_CHIP_RPL_FILE, "wb");
+                    for (int i = 0; i <= X && i <= 7; i++) {
+                        fwrite(&V[i], sizeof(uint8_t), 1, rpl_f);
+                    }
+                    fclose(rpl_f);
+                    break;
+
+                // FX85 (SUPER-CHIP 1.0): Read V0..VX from RPL user flags  TODO
+                case 0x85:
+                    rpl_f = fopen(SUPER_CHIP_RPL_FILE, "rb");
+                    for (int i = 0; i <= X && i <= 7; i++) {
+                        fread(&V[i], sizeof(uint8_t), 1, rpl_f);
+                    }
+                    fclose(rpl_f);
+                    break;
+
                 default:
                     unrecognised = 1;
             }
@@ -419,6 +475,10 @@ void chip8_init(void) {
     }
 
     chip8_display_updated = 0;
+
+    // SUPER-CHIP 1.0
+    high_res_mode = 0;
+    chip8_exit_flag = 0;
 }
 
 uint8_t chip8_load_rom(const char *rom_path) {

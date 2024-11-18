@@ -6,12 +6,13 @@
 #include <stdint.h>
 #include <string.h>
 
-#define DISPLAY_RES_X 64
-#define DISPLAY_RES_Y 32
+#define DISPLAY_RES_X 128
+#define DISPLAY_RES_Y 64
 
 uint8_t chip8_display[DISPLAY_RES_X * DISPLAY_RES_Y];
 uint8_t chip8_display_updated;
 uint8_t chip8_sound_off;
+uint8_t chip8_exit_flag;
 double chip8_next_timer_update;
 
 #ifdef DEBUG

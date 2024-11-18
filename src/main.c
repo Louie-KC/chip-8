@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
 #endif  // DEBUG
 
     // Emulation loop
-    while (!peripheral_quit_flag) {
+    while (!peripheral_quit_flag && !chip8_exit_flag) {
         debug();
         gettimeofday(&time, NULL);
         time_sec = time.tv_sec + (time.tv_usec / 1000000.0);
