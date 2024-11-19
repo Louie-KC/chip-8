@@ -21,6 +21,172 @@ void test_super_chip_init(void) {
     printf("[PASS] test_super_chip_init\n");
 }
 
+// Test: Scroll display N pixels down (high res mode). Move pixels down
+void test_00CN_high_res(void) {
+    // 1. N = 0. Single pixel on top left corner and bottom left corner
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display[0] = 1;
+    chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xC0;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 1);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] == 1);
+
+    // 2. N = 1. Single pixel on top left corner and bottom left corner
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display[0] = 1;  // top left
+    chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] = 1;  // bottom left
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xC1;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[DISPLAY_RES_X] == 1);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] == 0);
+
+    // 3. N = 2
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display[0] = 1;
+    chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 4)] = 1;
+    chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 3)] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xC2;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);  // lose the top left pixel
+    assert(chip8_display[DISPLAY_RES_X] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2] == 1);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 4)] == 0);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 3)] == 0);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 2)] == 1);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] == 1);
+
+    printf("[PASS] test_00CN_high_res\n");
+}
+
+// Test: Scroll right 4 pixels (high res mode). Move pixels right
+void test_00FB_high_res(void) {
+    // 1.
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display[0] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFB;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[1] == 0);
+    assert(chip8_display[2] == 0);
+    assert(chip8_display[3] == 0);
+    assert(chip8_display[4] == 1);
+
+    // 2.
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display[0] = 1;
+    chip8_display[1] = 1;
+    chip8_display[2] = 0;
+    chip8_display[3] = 1;
+    chip8_display[DISPLAY_RES_X] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFB;
+    chip8_step(0, 0.0);
+    printf("post step\n");
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[1] == 0);
+    assert(chip8_display[2] == 0);
+    assert(chip8_display[3] == 0);
+    assert(chip8_display[4] == 1);
+    assert(chip8_display[5] == 1);
+    assert(chip8_display[6] == 0);
+    assert(chip8_display[7] == 1);
+    assert(chip8_display[DISPLAY_RES_X] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 4] == 1);
+    assert(chip8_display[DISPLAY_RES_X + 5] == 0);
+
+    // 3. Ensure new edge is empty
+    chip8_init();
+    high_res_mode = 1;
+    memset(chip8_display, 1, DISPLAY_RES_X * DISPLAY_RES_Y);
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFB;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[1] == 0);
+    assert(chip8_display[2] == 0);
+    assert(chip8_display[3] == 0);
+    assert(chip8_display[4] == 1);
+    assert(chip8_display[DISPLAY_RES_X] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X + 4] == 1);
+
+    printf("[PASS] test_00FB_high_res\n");
+}
+
+// Test: Scroll left 4 pixels (high res mode). Move pixels left
+void test_00FC_high_res(void) {
+    // 1.
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display[DISPLAY_RES_X - 1] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFC;
+    chip8_step(0, 0.0);
+    assert(chip8_display[DISPLAY_RES_X] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 4] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 5] == 1);
+
+    // 2
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display[0] = 1;
+    chip8_display[DISPLAY_RES_X - 1] = 1;
+    chip8_display[DISPLAY_RES_X - 2] = 1;
+    chip8_display[DISPLAY_RES_X * 2 - 1] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFC;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 4] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 5] == 1);
+    assert(chip8_display[DISPLAY_RES_X - 6] == 1);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 4] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 5] == 1);
+
+    // 3. Ensure new edge is empty
+    chip8_init();
+    high_res_mode = 1;
+    memset(chip8_display, 1, DISPLAY_RES_X * DISPLAY_RES_Y);
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFC;
+    chip8_step(0, 0.0);
+    assert(chip8_display[DISPLAY_RES_X - 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 4] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2 - 4] == 0);
+
+    printf("[PASS] test_00FC_high_res\n");
+}
+
 // Test: Exit interpreter
 void test_00FD(void) {
     chip8_init();
@@ -266,6 +432,9 @@ int main(void) {
     test_super_chip_init();
 
     printf("\n* Running new/super-chip opcode tests\n");
+    test_00CN_high_res();  // Scroll N pixels down/Move pixels n positions down
+    test_00FB_high_res();  // Scroll 4 pixels right/Move pixels 4 positions to the right
+    test_00FC_high_res();  // Scroll 4 pixels left/Move pixels 4 positions to the left
     test_00FD();  // Exit interpreter
     test_00FE();  // Switch to low res mode/disable high res mode
     test_00FF();  // Switch to high res mode/enable high res mode

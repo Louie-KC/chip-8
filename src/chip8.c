@@ -107,6 +107,32 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     pc = stack[--sp];
                     break;
 
+                // 00FB (SUPER-CHIP 1.1): Shift/move display pixels 4 right
+                case 0x00FB:
+                    for (dx = DISPLAY_RES_X - 4; dx >= 0 && dx != __UINT16_MAX__; dx--) {
+                        for (dy = 0; dy < DISPLAY_RES_Y; dy++) {
+                            di = (dy * DISPLAY_RES_X) + dx;
+                            chip8_display[di] = chip8_display[di - 4];
+                            if (dx < 4) {
+                                chip8_display[di] = 0;
+                            }
+                        }
+                    }
+                    break;
+
+                // 00FC (SUPER-CHIP 1.1): Shift/move display pixels 4 left
+                case 0x00FC:
+                    for (dx = 0; dx < DISPLAY_RES_X - 4; dx++) {
+                        for (dy = 0; dy < DISPLAY_RES_Y; dy++) {
+                            di = (dy * DISPLAY_RES_X) + dx;
+                            chip8_display[di] = chip8_display[di + 4];
+                            if (dx + 4 >= DISPLAY_RES_X - 4) {
+                                chip8_display[di + 4] = 0;
+                            }
+                        }
+                    }
+                    break;
+
                 // 00FD (SUPER-CHIP 1.0): Exit interpreter
                 case 0x00FD:
                     chip8_exit_flag = 1;
@@ -123,7 +149,18 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     break;
 
                 default:
-                    unrecognised = 1;
+                    // 00CN (SUPER-CHIP 1.1): Move display pixels N down
+                    if (Y == 0xC) {
+                        for (dy = DISPLAY_RES_Y - 1; dy >= N && dy != __UINT16_MAX__; dy--) {
+                            for (dx = 0; dx < DISPLAY_RES_X; dx++) {
+                                di = (dy * DISPLAY_RES_X) + dx;
+                                chip8_display[di * 1] = chip8_display[(dy - N) * DISPLAY_RES_X + dx];
+                            }
+                        }
+                        memset(chip8_display, 0, DISPLAY_RES_Y * N);
+                    } else {
+                        unrecognised = 1;
+                    }
             }
             break;
         
