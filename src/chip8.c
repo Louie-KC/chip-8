@@ -2,6 +2,7 @@
 
 #define TOTAL_MEMORY 0x1000    // 4096
 #define FONT_START_ADDR 0x50   // 80
+#define SFONT_START_ADDR 0xA0  // 160
 #define PROG_START_ADDR 0x200  // 512
 #define NUM_GP_REGISTERS 16
 #define STACK_SIZE 16
@@ -47,6 +48,120 @@ uint8_t fonts[] = {
     0xE0, 0x90, 0x90, 0x90, 0xE0, // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+};
+
+// Made following a reference:
+// https://github.com/Chromatophore/HP48-Superchip/blob/master/investigations/quirk_font/bighexcomparison.png
+uint8_t super_fonts[] = {
+    0b00111100,
+    0b01111110,
+    0b11100111,
+    0b11000011,
+    0b11000011,
+    0b11000011,
+    0b11000011,
+    0b11100111,
+    0b01111110,
+    0b00111100,  // 0
+
+    0b00011000,
+    0b00111000,
+    0b01011000,
+    0b00011000,
+    0b00011000,
+    0b00011000,
+    0b00011000,
+    0b00011000,
+    0b00011000,
+    0b00111100,  // 1
+
+    0b00111110,
+    0b01111111,
+    0b11000011,
+    0b00000110,
+    0b00001100,
+    0b00011000,
+    0b00110000,
+    0b01100000,
+    0b11111111,
+    0b11111111,  // 2
+
+    0b00111100,
+    0b01111110,
+    0b11000011,
+    0b00000011,
+    0b00001110,
+    0b00001110,
+    0b00000011,
+    0b11000011,
+    0b01111110,
+    0b00111100,  // 3
+
+    0b00000110,
+    0b00001110,
+    0b00011110,
+    0b00110110,
+    0b01100110,
+    0b11000110,
+    0b11111111,
+    0b11111111,
+    0b00000110,
+    0b00000110,  // 4
+
+    0b11111111,
+    0b11111111,
+    0b11000000,
+    0b11000000,
+    0b11111100,
+    0b11111110,
+    0b00000011,
+    0b11000011,
+    0b01111110,
+    0b00111100,  // 5
+
+    0b00111110,
+    0b01111100,
+    0b11000000,
+    0b11000000,
+    0b11111100,
+    0b11111110,
+    0b11000011,
+    0b11000011,
+    0b01111110,
+    0b00111100,  // 6
+
+    0b11111111,
+    0b11111111,
+    0b00000011,
+    0b00000110,
+    0b00001100,
+    0b00011000,
+    0b00110000,
+    0b01100000,
+    0b01100000,
+    0b01100000,  // 7
+
+    0b00111100,
+    0b01111110,
+    0b11000011,
+    0b11000011,
+    0b01111110,
+    0b01111110,
+    0b11000011,
+    0b11000011,
+    0b01111110,
+    0b00111100,  // 8
+
+    0b00111100,
+    0b01111110,
+    0b11000011,
+    0b11000011,
+    0b01111111,
+    0b00111111,
+    0b00000011,
+    0b00000011,
+    0b00111110,
+    0b01111100   // 9
 };
 
 void update_timers(double time_sec) {
@@ -388,7 +503,7 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 
                 // FX29: Font character
                 case 0x29:
-                    if (!(V[X] & 0xF0)) {  // (SUPER-CHIP 1.0) low res mode
+                    if (!(V[X] & 0xF0) && !high_res_mode) {  // (SUPER-CHIP 1.0) low res mode
                         I = FONT_START_ADDR + (V[X] * 5);  // 5 bytes per char sprite
                         break;
                     } else {  // (SUPER-CHIP 1.0) high res mode
@@ -397,7 +512,7 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
 
                 // FX30 (SUPER-CHIP 1.1): Large font character
                 case 0x30:
-                    printf("TODO: FX30\n");
+                    I = SFONT_START_ADDR + (V[X] * 10);  // 10 bytes per char sprite
                     break;
 
                 // FX33: Binary-coded decimal conversion. Lay out digits starting at I
@@ -511,11 +626,18 @@ void chip8_init(void) {
         memory[FONT_START_ADDR + i] = fonts[i];
     }
 
+
     chip8_display_updated = 0;
 
     // SUPER-CHIP 1.0
     high_res_mode = 0;
     chip8_exit_flag = 0;
+
+    // Can't find any documentation stating where to place 16x16 fonts.
+    // Just going to place immediately after regular fonts.
+    for (unsigned long i = 0; i < sizeof(super_fonts); i++) {
+        memory[SFONT_START_ADDR + i] = super_fonts[i];
+    }
 }
 
 uint8_t chip8_load_rom(const char *rom_path) {

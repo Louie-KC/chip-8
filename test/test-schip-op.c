@@ -18,6 +18,10 @@ void test_super_chip_init(void) {
     assert(high_res_mode == 0);
     assert(chip8_exit_flag == 0);
 
+    for (long i = 0; i < sizeof(super_fonts); i++) {
+        assert(memory[SFONT_START_ADDR + i] == super_fonts[i]);
+    }
+
     printf("[PASS] test_super_chip_init\n");
 }
 
@@ -442,6 +446,6 @@ int main(void) {
     test_FX75();  // Write/dump V0..VX (up to 7, inclusive) values to file
     test_FX85();  // Read/load V0..VX (up to 7, inclusive) values from file
 
-    printf("\n* All SUPER-CHIP tests passed\n");
+    printf("\n* All SUPER-CHIP op tests passed\n");
     return 0;
 }

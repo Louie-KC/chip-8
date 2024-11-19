@@ -12,7 +12,10 @@ void test_chip8_init() {
         assert(memory[i] == 0);
     }
     // Interpreter space: after fonts
-    for (int i = FONT_START_ADDR + 80; i < PROG_START_ADDR; i++) {
+    // Note: In regular CHIP-8, nothing exists after 80 bytes of font data.
+    //       However, in adding the SUPER-CHIP extension the super 16x16
+    //       fonts are placed at 0xA0 (160) and take up 0x64 (100) bytes.
+    for (int i = FONT_START_ADDR + 80 + 100; i < PROG_START_ADDR; i++) {
         assert(memory[i] == 0);
     }
     // Program/ROM space
@@ -1199,6 +1202,6 @@ int main(void) {
     test_FX55();  // Dump registers to memory at I
     test_FX65();  // Load values to registers from memory at I
 
-    printf("\n* All tests passed\n");
+    printf("\n* All CHIP8 op tests passed\n");
     return 0;
 }
