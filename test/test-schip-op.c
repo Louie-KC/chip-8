@@ -262,6 +262,53 @@ void test_00FF(void) {
     printf("[PASS] test_00FF\n");
 }
 
+// Test: VF set to 0/1 (low res) or count of on bits flipped off (high res)
+void test_DXYN_VF(void) {
+    // 1. low res w/ all pixels off
+    chip8_init();
+    chip8_display_updated = 1;
+    I = FONT_START_ADDR;  // 0
+    memory[PROG_START_ADDR]     = 0xD0;
+    memory[PROG_START_ADDR + 1] = 0x05;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 0);
+
+    // 2. low res with some pixels on
+    chip8_init();
+    chip8_display_updated = 1;
+    I = FONT_START_ADDR;  // 0
+    memory[PROG_START_ADDR]     = 0xD0;
+    memory[PROG_START_ADDR + 1] = 0x05;
+    chip8_display[0] = 1;
+    chip8_display[1] = 1;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 1);
+    
+    // 3. high res w/ all pixels off
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display_updated = 1;
+    I = SFONT_START_ADDR + 5;  // 5
+    memory[PROG_START_ADDR]     = 0xD0;
+    memory[PROG_START_ADDR + 1] = 0x05;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 0);
+
+    // 4. high res with some pixels on
+    chip8_init();
+    high_res_mode = 1;
+    chip8_display_updated = 1;
+    I = SFONT_START_ADDR + 5;  // 5
+    memory[PROG_START_ADDR]     = 0xD0;
+    memory[PROG_START_ADDR + 1] = 0x05;
+    chip8_display[0] = 1;
+    chip8_display[1] = 1;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 2);
+
+    printf("[PASS] test_DXYN_VF\n");
+}
+
 // Test: Dump VX register values (up to and including V7)
 void test_FX75(void) {
     FILE *f;
@@ -443,6 +490,7 @@ int main(void) {
     test_00FE();  // Switch to low res mode/disable high res mode
     test_00FF();  // Switch to high res mode/enable high res mode
     // test_DXY0();  // TODO: Understand 16x16 sprite usage
+    test_DXYN_VF();  // Test low & high res VF setting behaviour
     test_FX75();  // Write/dump V0..VX (up to 7, inclusive) values to file
     test_FX85();  // Read/load V0..VX (up to 7, inclusive) values from file
 

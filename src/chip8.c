@@ -421,6 +421,7 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             dy = V[Y] % DISPLAY_RES_Y;
             V[0xF] = 0;
             chip8_display_updated = 1;
+
             for (dr = 0; dr < N && dy + dr < DISPLAY_RES_Y; dr++) {
                 uint8_t sprite_data = memory[I + dr];
                 for (dc = 0; dc < 8 && dx + dc < DISPLAY_RES_X; dc++) {
@@ -428,18 +429,21 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     if ((sprite_data & (0b10000000 >> dc)) != 0) {
                         di = (((dy + dr) * DISPLAY_RES_X) + dx + dc);
                         di = di * (2 - high_res_mode);
-                        if (chip8_display[di] == 1) {
-                            V[0xF] = 1;
-                        }
+                        // Sum the number of on bits being flipped
+                        V[0xF] += chip8_display[di];
                         // Flip the display pixels bit
                         chip8_display[di] ^= 1;
-                        if (!high_res_mode) {
+                        if (!high_res_mode) {  // low res compat drawing
                             chip8_display[di + 1] ^= 1;
                             chip8_display[di + DISPLAY_RES_X] ^= 1;
                             chip8_display[di + DISPLAY_RES_X + 1] ^= 1;
                         }
                     }
                 }
+            }
+            if (!high_res_mode) {
+                // constrain to 0 or 1 in low res mode
+                V[0xF] = V[0xF] > 0;
             }
             break;
 
