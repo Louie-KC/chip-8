@@ -9,9 +9,19 @@
 #define DISPLAY_RES_X 64
 #define DISPLAY_RES_Y 32
 
+// Quirks: For specific modern quirks, XOR ^ with legacy mode
+#define CHIP8_QUIRK_LEGACY_SHIFT 0x1  // Shift VY in VX instead of shift VX in-place
+#define CHIP8_QUIRK_LEGACY_JUMP_V0_OFFSET 0x2  // V0 instead of VX
+#define CHIP8_QUIRK_LEGACY_REG_DUMP_I 0x4  // I added to
+
+#define CHIP8_QUIRK_LEGACY_MODE 0x7
+#define CHIP8_QUIRK_MODERN_MODE 0x0
+
 uint8_t chip8_display[DISPLAY_RES_X * DISPLAY_RES_Y];
 uint8_t chip8_display_updated;
 uint8_t chip8_sound_off;
+uint8_t chip8_exit_flag;
+uint8_t chip8_quirk_flag;
 double chip8_next_timer_update;
 
 #ifdef DEBUG

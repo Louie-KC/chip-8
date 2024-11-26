@@ -188,10 +188,12 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
-                // 8XY6: Right shift. VX = VX >> 1 (ambiguous VY)
+                // 8XY6: Right shift. VX = VY >> 1 (modern: VX = VX >> 1)
                 case 0x6:
+                    if (CHIP8_QUIRK_LEGACY_SHIFT & chip8_quirk_flag) {
+                        V[X] = V[Y]; // Ambiguous
+                    }
                     V[0xF] = V[X] & 0b00000001;
-                    // V[Y] = V[X]; // Ambiguous
                     V[X] = V[X] >> 1;
                     break;
                 
@@ -205,10 +207,12 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
-                // 8XYE: Left shift. VX = VX << 1 (ambiguous VY)
+                // 8XYE: Left shift. VX = VY << 1 (modern: VX = VX << 1)
                 case 0xE:
+                    if (CHIP8_QUIRK_LEGACY_SHIFT & chip8_quirk_flag) {
+                        V[X] = V[Y]; // Ambiguous
+                    }
                     V[0xF] = (V[X] & 0b10000000) >> 7;
-                    // V[Y] = V[X]; // Ambiguous
                     V[X] = V[X] << 1;
                     break;
                 
@@ -229,9 +233,14 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             I = NNN;
             break;
 
-        // BNNN: jump PC to V0 + NNN (ambiguous, modern BXNN: PC = XNN + VX)
+        // BNNN: jump PC to V0 + NNN (ambiguous, modern BXNN: PC = VX + XNN)
         case 0xB:
-            pc = V[0x0] + NNN;
+            if (CHIP8_QUIRK_LEGACY_JUMP_V0_OFFSET & chip8_quirk_flag) {
+                pc = V[0x0];
+            } else {
+                pc = V[X];
+            }
+            pc += NNN;
             break;
 
         // CXNN: store random number (ANDed with NN) in VX
@@ -337,7 +346,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     for (int i = 0; i <= X; i++) {
                         memory[I + i] = V[i];
                     }
-                    // I += X + 1; // Ambiguous: old ROMS expect this
+                    if (CHIP8_QUIRK_LEGACY_REG_DUMP_I & chip8_quirk_flag) {
+                        I += X + 1; // Ambiguous: old ROMS expect this
+                    }
                     break;
                 
                 // FX65: Load first n (determined by X) register values from memory
@@ -345,7 +356,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     for (int i = 0; i <= X; i++) {
                         V[i] = memory[I + i];
                     }
-                    // I += X + 1;  // Ambiguous: old ROMS expect this
+                    if (CHIP8_QUIRK_LEGACY_REG_DUMP_I & chip8_quirk_flag) {
+                        I += X + 1;  // Ambiguous: old ROMS expect this
+                    }
                     break;
                 
                 default:
@@ -419,6 +432,9 @@ void chip8_init(void) {
     }
 
     chip8_display_updated = 0;
+
+    // Default quirks
+    chip8_quirk_flag = CHIP8_QUIRK_LEGACY_MODE;
 }
 
 uint8_t chip8_load_rom(const char *rom_path) {
