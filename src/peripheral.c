@@ -182,6 +182,18 @@ uint8_t sdl_input_step(void) {
     else if (keyboard[SDL_SCANCODE_V]) {
         input = 0x1F;
     }
+    // State save
+    else if (keyboard[SDL_SCANCODE_F5]) {
+        input = 0x21;
+    }
+    // State load
+    else if (keyboard[SDL_SCANCODE_F9]) {
+        input = 0x22;
+    }
+    // Force re-draw
+    else if (keyboard[SDL_SCANCODE_F10]) {
+        input = 0x23;
+    }
 
     return input;
 }

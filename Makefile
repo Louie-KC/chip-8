@@ -21,3 +21,4 @@ test:
 clean:
 	rm -f ${EXEC_NAME}
 	rm -f ${TEST_NAME}
+	rm -f *state*.bin

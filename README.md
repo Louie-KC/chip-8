@@ -49,6 +49,15 @@ q         - quit.
 ## Inputs
 Starting with the '1' key below the F keys, a 4x4 grid is mapped to the CHIP-8 keypad. Scan codes are used for DVORAK layout compatibility.
 
+### Emulator controls
+The state of the emulator can be saved/written to a binary file, and can be loaded/read back in. Additionally, it is possible to force a re-draw of the display (typically for use when a loaded state does not execute a DXYN/display or 00E0/clear op on its own).
+
+```
+F5  - Save state
+F9  - Load state
+F10 - Force display re-draw
+```
+
 ## SDL2
 Developed on an ARM Mac with SDL2 installed via Homebrew.
 

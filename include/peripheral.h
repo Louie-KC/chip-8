@@ -42,6 +42,17 @@ void sdl_close(void);
  * 00010000
  * ^^^^
  * The CHIP-8 '0' key is pushed.
+ * 
+ * Aux:
+ * Extra keys are mapped for extra emulator functionality.
+ * - F5  = 0x20 = 0010000 (intended for state save)
+ * - F9  = 0x21 = 0010001 (intended for state load)
+ * - F10 = 0x22 = 0010010 (intended to force redraw of screen)
+ * 
+ * Usage:
+ * - Mask with 0xF0 to determine if any key is down.
+ * - Mask with 0x10 to determine if a CHIP8 keypad key is down
+ * - Mask with 0x20 to determine if a emulator control key is down
  */
 uint8_t sdl_input_step(void);
 

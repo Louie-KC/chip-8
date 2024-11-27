@@ -93,6 +93,18 @@ void debug(void) {
 #endif  // DEBUG
 }
 
+void handle_state_controls(uint8_t last_input) {
+    if (0x01 & last_input) {
+        chip8_write_state();
+    }
+    else if (0x02 & last_input) {
+        chip8_load_state();
+    }
+    else if (0x03 & last_input) {
+        chip8_display_updated = 1;
+    }
+}
+
 int main(int argc, char *argv[]) {
     struct timeval time;
     double time_sec;
@@ -101,6 +113,7 @@ int main(int argc, char *argv[]) {
     double next_display;
 #endif  // n DEBUG
     uint8_t input;
+    uint8_t last_input = 0;
     uint8_t render_scale = DEFAULT_RENDER_SCALE;
     uint8_t use_double_buffering = DEFAULT_USE_DOUBLE_BUFFER;
     
@@ -163,6 +176,11 @@ int main(int argc, char *argv[]) {
 #endif  // n DEBUG
             input = sdl_input_step();
             chip8_step(input, time_sec);
+            if ((last_input & 0x20) && !(input & 0x20)) {
+                // on release of state control key
+                handle_state_controls(last_input);
+            }
+            last_input = input;
 #ifndef DEBUG
             next_cycle += CPU_HZ_DELAY;
         }

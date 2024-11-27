@@ -275,14 +275,14 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             switch (NN) {
                 // EX9E: skip 1 instruction if key VX is down
                 case 0x9E:
-                    if ((key_input & 0xF0) && (key_input & 0x0F) == V[X]) {
+                    if ((key_input & 0x10) && (key_input & 0x0F) == V[X]) {
                         pc += 2;
                     }
                     break;
 
                 // EXA1: skip 1 instruction if key VX is up
                 case 0xA1:
-                    if (!(key_input & 0xF0) || (key_input & 0x0F) != V[X]) {
+                    if (!(key_input & 0x10) || (key_input & 0x0F) != V[X]) {
                         pc += 2;
                     }
                     break;
@@ -478,4 +478,88 @@ void chip8_step(uint8_t key_input, double time_sec) {
     update_timers(time_sec);
     uint16_t instruction = fetch();
     decode_and_exec(instruction, key_input);
+}
+
+void chip8_write_state() {
+    FILE *f;
+    int i;
+
+    f = fopen(CHIP8_STATE_FILE_NAME, "wb");
+    if (!f) {
+        fprintf(stderr, "chip8_write_state: Failed to open '%s'\n", CHIP8_STATE_FILE_NAME);
+        return;
+    }
+
+    // Write exposed state
+    for (i = 0; i < DISPLAY_RES_X * DISPLAY_RES_Y; i++) {
+        fwrite(&chip8_display[i], sizeof(uint8_t), 1, f);
+    }
+    // fwrite(&chip8_display_updated, sizeof(uint8_t), 1, f);
+    fwrite(&chip8_sound_off,  sizeof(uint8_t), 1, f);
+    fwrite(&chip8_exit_flag,  sizeof(uint8_t), 1, f);
+    fwrite(&chip8_quirk_flag, sizeof(uint8_t), 1, f);
+    fwrite(&chip8_next_timer_update, sizeof(double), 1, f);
+
+    // Write internal state
+    for (i = 0; i < TOTAL_MEMORY; i++) {
+        fwrite(&memory[i], sizeof(uint8_t), 1, f);
+    }
+    for (i = 0; i < NUM_GP_REGISTERS; i++) {
+        fwrite(&V[i], sizeof(uint8_t), 1, f);
+    }
+    fwrite(&pc, sizeof(uint16_t), 1, f);
+    fwrite(&I,  sizeof(uint16_t), 1, f);
+
+    for (i = 0; i < STACK_SIZE; i++) {
+        fwrite(&stack[i], sizeof(uint16_t), 1, f);
+    }
+    fwrite(&sp, sizeof(uint16_t), 1, f);
+
+    fwrite(&delay_timer, sizeof(uint8_t), 1, f);
+    fwrite(&sound_timer, sizeof(uint8_t), 1, f);
+
+    fclose(f);
+}
+
+void chip8_load_state() {
+    FILE *f;
+    int i;
+
+    f = fopen(CHIP8_STATE_FILE_NAME, "rb");
+    if (!f) {
+        fprintf(stderr, "chip8_load_state: Failed to open '%s'\n", CHIP8_STATE_FILE_NAME);
+        return;
+    }
+
+    // Read exposed state
+    for (i = 0; i < DISPLAY_RES_X * DISPLAY_RES_Y; i++) {
+        fread(&chip8_display[i], sizeof(uint8_t), 1, f);
+    }
+    // fread(&chip8_display_updated, sizeof(uint8_t), 1, f);
+    fread(&chip8_sound_off,  sizeof(uint8_t), 1, f);
+    fread(&chip8_exit_flag,  sizeof(uint8_t), 1, f);
+    fread(&chip8_quirk_flag, sizeof(uint8_t), 1, f);
+    fread(&chip8_next_timer_update, sizeof(double), 1, f);
+
+    // Read internal state
+    for (i = 0; i < TOTAL_MEMORY; i++) {
+        fread(&memory[i], sizeof(uint8_t), 1, f);
+    }
+    for (i = 0; i < NUM_GP_REGISTERS; i++) {
+        fread(&V[i], sizeof(uint8_t), 1, f);
+    }
+    fread(&pc, sizeof(uint16_t), 1, f);
+    fread(&I,  sizeof(uint16_t), 1, f);
+
+    for (i = 0; i < STACK_SIZE; i++) {
+        fread(&stack[i], sizeof(uint16_t), 1, f);
+    }
+    fread(&sp, sizeof(uint16_t), 1, f);
+
+    fread(&delay_timer, sizeof(uint8_t), 1, f);
+    fread(&sound_timer, sizeof(uint8_t), 1, f);
+
+    fclose(f);
+
+    chip8_display_updated = 1;
 }
