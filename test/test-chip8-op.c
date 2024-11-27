@@ -576,6 +576,15 @@ void test_8XY4() {
     assert(V[0x7] == 0x0D);
     assert(V[0xE] == 0xDA);
     assert(V[0xF] == 1);  // overflow
+    
+    // 6. Ensure VF can be used as VX
+    chip8_init();
+    V[0xF] = 0xCD;
+    V[0x1] = 0x12;
+    memory[PROG_START_ADDR]     = 0x8F;
+    memory[PROG_START_ADDR + 1] = 0x14;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 0);  // VX (VF) result overridden with overflow flag
 
     printf("[PASS] test_8XY4\n");
 }
@@ -603,6 +612,16 @@ void test_8XY5() {
     assert(V[0x0] == 0xFF);
     assert(V[0x1] == 0x06);
     assert(V[0xF] == 0);  // underflow
+    
+    // 3. Ensure VF can be used as VX
+    chip8_init();
+    V[0x0] = 0x08;
+    V[0x1] = 0x03;
+    memory[PROG_START_ADDR]     = 0x8F;
+    memory[PROG_START_ADDR + 1] = 0x15;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 0);  // VX (VF) result overridden with overflow flag
+    assert(V[0x1] == 0x03);
 
     printf("[PASS] test_8XY5\n");
 }
@@ -630,6 +649,16 @@ void test_8XY6() {
     assert(V[0x0] == 0b01111111);
     assert(V[0x1] == 0b11111111);  // legacy: VY untouched
     assert(V[0xF] == 1);  // 1 was shifted out of the register
+    
+    // 3. Ensure VF can be used as VY
+    chip8_init();  // defaults to legacy mode
+    V[0x0] = 0b00000000;
+    V[0xF] = 0b11111111;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0xF6;
+    chip8_step(0, 0.0);
+    assert(V[0x0] == 0b01111111);
+    assert(V[0xF] == 1);  // VY (VF) result overridden with shifted out bit
 
     printf("[PASS] test_8XY6 (legacy)\n");
 }
@@ -655,6 +684,15 @@ void test_8XY6_modern() {
     chip8_step(0, 0.0);
     assert(V[0x0] == 0b01111111);
     assert(V[0xF] == 1);  // 1 was shifted out of the register
+
+    // 3. Ensure VF can be used as VY
+    chip8_init();
+    chip8_quirk_flag ^= CHIP8_QUIRK_LEGACY_SHIFT;  // disable legacy shift mode
+    V[0xF] = 0b11111111;
+    memory[PROG_START_ADDR]     = 0x8F;
+    memory[PROG_START_ADDR + 1] = 0x06;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 1);  // VX (VF) result overridden with shifted out bit
 
     printf("[PASS] test_8XY6_modern\n");
 }
@@ -682,6 +720,29 @@ void test_8XY7() {
     assert(V[0x0] == 0xFF);
     assert(V[0x1] == 0x05);
     assert(V[0xF] == 0);  // underflow
+    
+    // 3. VF = V1 (0x05) - VF (0x02)
+    // Ensure VF can be used as VX and is left with the
+    // no underflow flag set, instead of the op result.
+    chip8_init();
+    V[0xF] = 0x02;
+    V[0x1] = 0x05;
+    memory[PROG_START_ADDR]     = 0x8F;
+    memory[PROG_START_ADDR + 1] = 0x17;
+    chip8_step(0, 0.0);
+    assert(V[0x1] == 0x05);
+    assert(V[0xF] == 1);  // no underflow instead of 3
+    
+    // 4. V1 = VF (0x02) - V1 (0x05)
+    // Ensure VF can be used as VY and is overridden
+    chip8_init();
+    V[0xF] = 0x02;
+    V[0x1] = 0x05;
+    memory[PROG_START_ADDR]     = 0x81;
+    memory[PROG_START_ADDR + 1] = 0xF7;
+    chip8_step(0, 0.0);
+    assert(V[0x1] == 0xFD);
+    assert(V[0xF] == 0);  // underflow instead of original 2
 
     printf("[PASS] test_8XY7\n");
 }
@@ -710,6 +771,16 @@ void test_8XYE() {
     assert(V[0x1] == 0b11111111);  // legacy: VY untouched
     assert(V[0xF] == 1);  // 1 was shifted out of the register
 
+    // 3. Ensure VF can be used as VY
+    chip8_init();
+    V[0x0] = 0b00000000;
+    V[0xF] = 0b11111111;
+    memory[PROG_START_ADDR]     = 0x80;
+    memory[PROG_START_ADDR + 1] = 0xFE;
+    chip8_step(0, 0.0);
+    assert(V[0x0] == 0b11111110);
+    assert(V[0xF] == 1);  // VY (VF) result overridden with shifted out bit
+
     printf("[PASS] test_8XYE (legacy)\n");
 }
 
@@ -717,6 +788,7 @@ void test_8XYE() {
 void test_8XYE_modern() {
     // 1.
     chip8_init();
+    chip8_quirk_flag ^= CHIP8_QUIRK_LEGACY_SHIFT;
     V[0x0] = 0b01010101;
     memory[PROG_START_ADDR]     = 0x80;
     memory[PROG_START_ADDR + 1] = 0x0E;
@@ -726,6 +798,7 @@ void test_8XYE_modern() {
     
     // 2.
     chip8_init();
+    chip8_quirk_flag ^= CHIP8_QUIRK_LEGACY_SHIFT;
     V[0x0] = 0b11111111;
     V[0x1] = 0b00000000;
     memory[PROG_START_ADDR]     = 0x80;
@@ -733,6 +806,15 @@ void test_8XYE_modern() {
     chip8_step(0, 0.0);
     assert(V[0x0] == 0b11111110);
     assert(V[0xF] == 1);  // 1 was shifted out of the register
+
+    // 3. Ensure VF can be used as VX
+    chip8_init();
+    chip8_quirk_flag ^= CHIP8_QUIRK_LEGACY_SHIFT;
+    V[0xF] = 0b11111111;
+    memory[PROG_START_ADDR]     = 0x8F;
+    memory[PROG_START_ADDR + 1] = 0x0E;
+    chip8_step(0, 0.0);
+    assert(V[0xF] == 1);  // VX (VF) result overridden with shifted out bit
 
     printf("[PASS] test_8XYE_modern\n");
 }

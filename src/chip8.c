@@ -83,8 +83,8 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
     uint16_t dc;  // iter col
     uint16_t di;  // buffer index
 
-    // Intermediary result variable for overflow/underflow detection
-    uint16_t arithmetic_result;
+    // Intermediary result variable for logical and arithmetic operations.
+    uint16_t op_intermediate;
 
     switch (first_nibble) {
         case 0x0:
@@ -147,6 +147,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             break;
 
         case 0x8:
+            // Note: Settng VF must be done last, and the use of the
+            //       `op_intermediate` is to allow for VF to be used
+            //       as VX and VY in the logical & arithmetic operations.
             switch (last_nibble) {
                 // 8XY0: set register VX = VY
                 case 0x0:
@@ -170,22 +173,24 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 
                 // 8XY4: add V[X] = V[X] + V[Y] w/ overflow detection
                 case 0x4:
-                    V[0xF] = 0;
-                    arithmetic_result = (V[X] + V[Y]) % 256;
-                    if (V[X] > arithmetic_result) {
-                        V[0xF] ^= 1;  // overflow. flip bit
+                    op_intermediate = V[X] + V[Y];
+                    V[X] = op_intermediate % 256;
+                    if (op_intermediate > UINT8_MAX) {
+                        V[0xF] = 1;
+                    } else {
+                        V[0xF] = 0;
                     }
-                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
                 // 8XY5: subtract V[X] = V[X] - V[Y] w/ underflow detection
                 case 0x5:
-                    V[0xF] = 1;
-                    arithmetic_result = (V[X] - V[Y]) % 256;
-                    if (V[X] < arithmetic_result) {
-                        V[0xF] ^= 1;  // underflow. flip bit
+                    op_intermediate = V[X] - V[Y];
+                    V[X] = op_intermediate % 256;
+                    if (op_intermediate > UINT8_MAX) {
+                        V[0xF] = 0;
+                    } else {
+                        V[0xF] = 1;
                     }
-                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
                 // 8XY6: Right shift. VX = VY >> 1 (modern: VX = VX >> 1)
@@ -193,18 +198,20 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     if (CHIP8_QUIRK_LEGACY_SHIFT & chip8_quirk_flag) {
                         V[X] = V[Y]; // Ambiguous
                     }
-                    V[0xF] = V[X] & 0b00000001;
-                    V[X] = V[X] >> 1;
+                    op_intermediate = V[X];
+                    V[X] = op_intermediate >> 1;
+                    V[0xF] = op_intermediate & 0b00000001;
                     break;
                 
                 // 8XY7: subtract V[X] = V[Y] - V[X] w/ underflow detection
                 case 0x7:
-                    V[0xF] = 1;
-                    arithmetic_result = (V[Y] - V[X]) % 256;
-                    if (V[Y] < arithmetic_result) {
-                        V[0xF] ^= 1;  // underflow. flip bit
+                    op_intermediate = V[Y] - V[X];
+                    V[X] = op_intermediate % 256;
+                    if (op_intermediate > UINT8_MAX) {
+                        V[0xF] = 0;
+                    } else {
+                        V[0xF] = 1;
                     }
-                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
                 // 8XYE: Left shift. VX = VY << 1 (modern: VX = VX << 1)
@@ -212,8 +219,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     if (CHIP8_QUIRK_LEGACY_SHIFT & chip8_quirk_flag) {
                         V[X] = V[Y]; // Ambiguous
                     }
-                    V[0xF] = (V[X] & 0b10000000) >> 7;
-                    V[X] = V[X] << 1;
+                    op_intermediate = V[X];
+                    V[X] = op_intermediate << 1;
+                    V[0xF] = (op_intermediate & 0b10000000) >> 7;
                     break;
                 
                 default:
@@ -321,12 +329,12 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
 
                 // FX1E: Add VX to index I
                 case 0x1E:
-                    arithmetic_result = (I + V[X]) % 0xFFF;
-                    if (arithmetic_result < I) {
+                    op_intermediate = (I + V[X]) % 0x0FFF;
+                    if (op_intermediate < I) {
                         // Amiga interpreter behaviour
                         V[0xF] = 1;
                     }
-                    I = arithmetic_result;
+                    I = op_intermediate;
                     break;
                 
                 // FX29: Font character
