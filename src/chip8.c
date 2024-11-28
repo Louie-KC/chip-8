@@ -28,7 +28,7 @@ uint8_t delay_timer;
 uint8_t sound_timer;
 
 // (SUPER-CHIP 1.0) low/high resolution flag
-uint8_t high_res_mode;
+uint8_t low_res_mode;
 
 // courtesy of https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
 uint8_t fonts[] = {
@@ -255,12 +255,12 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 
                 // 00FE (SUPER-CHIP 1.0): Disable high resolution mode
                 case 0x00FE:
-                    high_res_mode = 0;
+                    low_res_mode = 1;
                     break;
 
                 // 00FF (SUPER-CHIP 1.0): Enable high resolution mode
                 case 0x00FF:
-                    high_res_mode = 1;
+                    low_res_mode = 0;
                     break;
 
                 default:
@@ -434,23 +434,24 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
         // DXYN: display
         case 0xD:
             // The display positions should wrap. The sprite itself should not.
-            dx = V[X] % DISPLAY_RES_X;
-            dy = V[Y] % DISPLAY_RES_Y;
+            dx = V[X] % (DISPLAY_RES_X >> low_res_mode);
+            dy = V[Y] % (DISPLAY_RES_Y >> low_res_mode);
             V[0xF] = 0;
             chip8_display_updated = 1;
 
-            for (dr = 0; dr < N && dy + dr < DISPLAY_RES_Y; dr++) {
+            for (dr = 0; dr < N && dy + dr < (DISPLAY_RES_Y >> low_res_mode); dr++) {
                 uint8_t sprite_data = memory[I + dr];
-                for (dc = 0; dc < 8 && dx + dc < DISPLAY_RES_X; dc++) {
+                for (dc = 0; dc < 8 && dx + dc < (DISPLAY_RES_X >> low_res_mode); dc++) {
                     // Check each bit in a left to right order
                     if ((sprite_data & (0b10000000 >> dc)) != 0) {
                         di = (((dy + dr) * DISPLAY_RES_X) + dx + dc);
-                        di = di * (2 - high_res_mode);
+                        di = di << low_res_mode;
+
                         // Sum the number of on bits being flipped
                         V[0xF] += chip8_display[di];
                         // Flip the display pixels bit
                         chip8_display[di] ^= 1;
-                        if (!high_res_mode) {  // low res compat drawing
+                        if (low_res_mode) {  // low res compat drawing
                             chip8_display[di + 1] ^= 1;
                             chip8_display[di + DISPLAY_RES_X] ^= 1;
                             chip8_display[di + DISPLAY_RES_X + 1] ^= 1;
@@ -458,7 +459,7 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     }
                 }
             }
-            if (!high_res_mode) {
+            if (low_res_mode) {
                 // constrain to 0 or 1 in low res mode
                 V[0xF] = V[0xF] > 0;
             }
@@ -524,7 +525,7 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 
                 // FX29: Font character
                 case 0x29:
-                    if (!(V[X] & 0xF0) && !high_res_mode) {  // (SUPER-CHIP 1.0) low res mode
+                    if (!(V[X] & 0xF0) && low_res_mode) {  // (SUPER-CHIP 1.0) low res mode
                         I = FONT_START_ADDR + (V[X] * 5);  // 5 bytes per char sprite
                         break;
                     } else {  // (SUPER-CHIP 1.0) high res mode
@@ -658,7 +659,7 @@ void chip8_init(void) {
     chip8_quirk_flag = CHIP8_QUIRK_LEGACY_MODE;
 
     // SUPER-CHIP 1.0
-    high_res_mode = 0;
+    low_res_mode = 1;
     chip8_exit_flag = 0;
 
     // Can't find any documentation stating where to place 16x16 fonts.

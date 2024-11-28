@@ -15,7 +15,7 @@ void test_super_chip_init(void) {
     // If the above fail, run standard chip8 tests
 
     // SUPER-CHIP specific init assertions
-    assert(high_res_mode == 0);
+    assert(low_res_mode == 1);
     assert(chip8_exit_flag == 0);
 
     for (long i = 0; i < sizeof(super_fonts); i++) {
@@ -29,7 +29,7 @@ void test_super_chip_init(void) {
 void test_00CN_high_res(void) {
     // 1. N = 0. Single pixel on top left corner and bottom left corner
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display[0] = 1;
     chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] = 1;
     memory[PROG_START_ADDR]     = 0x00;
@@ -40,7 +40,7 @@ void test_00CN_high_res(void) {
 
     // 2. N = 1. Single pixel on top left corner and bottom left corner
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display[0] = 1;  // top left
     chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] = 1;  // bottom left
     memory[PROG_START_ADDR]     = 0x00;
@@ -52,7 +52,7 @@ void test_00CN_high_res(void) {
 
     // 3. N = 2
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display[0] = 1;
     chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 4)] = 1;
     chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 3)] = 1;
@@ -74,7 +74,7 @@ void test_00CN_high_res(void) {
 void test_00FB_high_res(void) {
     // 1.
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display[0] = 1;
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFB;
@@ -87,7 +87,7 @@ void test_00FB_high_res(void) {
 
     // 2.
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display[0] = 1;
     chip8_display[1] = 1;
     chip8_display[2] = 0;
@@ -114,7 +114,7 @@ void test_00FB_high_res(void) {
 
     // 3. Ensure new edge is empty
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     memset(chip8_display, 1, DISPLAY_RES_X * DISPLAY_RES_Y);
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFB;
@@ -137,7 +137,7 @@ void test_00FB_high_res(void) {
 void test_00FC_high_res(void) {
     // 1.
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display[DISPLAY_RES_X - 1] = 1;
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFC;
@@ -151,7 +151,7 @@ void test_00FC_high_res(void) {
 
     // 2
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display[0] = 1;
     chip8_display[DISPLAY_RES_X - 1] = 1;
     chip8_display[DISPLAY_RES_X - 2] = 1;
@@ -174,7 +174,7 @@ void test_00FC_high_res(void) {
 
     // 3. Ensure new edge is empty
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     memset(chip8_display, 1, DISPLAY_RES_X * DISPLAY_RES_Y);
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFC;
@@ -209,24 +209,24 @@ void test_00FE(void) {
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFE;
     chip8_step(0, 0.0);
-    assert(high_res_mode == 0);
+    assert(low_res_mode == 1);
 
     // 2. high res to low res
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFE;
     chip8_step(0, 0.0);
-    assert(high_res_mode == 0);
+    assert(low_res_mode == 1);
 
     // 3. high res to low res. Ensure display buffer is not cleared
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFE;
     chip8_display[30] = 0x11;
     chip8_step(0, 0.0);
-    assert(high_res_mode == 0);
+    assert(low_res_mode == 1);
     assert(chip8_display[30] == 0x11);
 
     printf("[PASS] test_00FE\n");
@@ -236,19 +236,19 @@ void test_00FE(void) {
 void test_00FF(void) {
     // 1. high res to high res
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFF;
     chip8_step(0, 0.0);
-    assert(high_res_mode == 1);
+    assert(low_res_mode == 0);
 
     // 2. low res to high res
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 1;
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFF;
     chip8_step(0, 0.0);
-    assert(high_res_mode == 1);
+    assert(low_res_mode == 0);
 
     // 3. low res to high res. Ensure display buffer is not cleared
     chip8_init();
@@ -256,7 +256,7 @@ void test_00FF(void) {
     memory[PROG_START_ADDR + 1] = 0xFF;
     chip8_display[20] = 0x12;
     chip8_step(0, 0.0);
-    assert(high_res_mode == 1);
+    assert(low_res_mode == 0);
     assert(chip8_display[20] == 0x12);
 
     printf("[PASS] test_00FF\n");
@@ -286,7 +286,7 @@ void test_DXYN_VF(void) {
     
     // 3. high res w/ all pixels off
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display_updated = 1;
     I = SFONT_START_ADDR + 5;  // 5
     memory[PROG_START_ADDR]     = 0xD0;
@@ -296,7 +296,7 @@ void test_DXYN_VF(void) {
 
     // 4. high res with some pixels on
     chip8_init();
-    high_res_mode = 1;
+    low_res_mode = 0;
     chip8_display_updated = 1;
     I = SFONT_START_ADDR + 5;  // 5
     memory[PROG_START_ADDR]     = 0xD0;
