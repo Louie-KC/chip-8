@@ -13,8 +13,9 @@
 #define CHIP8_QUIRK_LEGACY_SHIFT 0x1  // Shift VY in VX instead of shift VX in-place
 #define CHIP8_QUIRK_LEGACY_JUMP_V0_OFFSET 0x2  // V0 instead of VX
 #define CHIP8_QUIRK_LEGACY_REG_DUMP_I 0x4  // I added to
+#define CHIP8_QUIRK_SUPER_LEGACY_SCROLL 0x8
 
-#define CHIP8_QUIRK_LEGACY_MODE 0x7
+#define CHIP8_QUIRK_LEGACY_MODE 0xF
 #define CHIP8_QUIRK_MODERN_MODE 0x0
 
 #define CHIP8_STATE_FILE_NAME "ch8-state.bin"

@@ -10,6 +10,7 @@
 #define TIMER_HZ_DELAY 1.0 / 60
 
 #define SUPER_CHIP_RPL_FILE "rpl-flags.bin"
+#define SUPER_SCROLL_AMOUNT 4
 
 // Memory
 uint8_t memory[TOTAL_MEMORY];
@@ -202,6 +203,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
     uint16_t dr;  // iter row
     uint16_t dc;  // iter col
     uint16_t di;  // buffer index
+    // super display scrolling
+    uint8_t scroll_scale;
+    uint8_t scroll_amount;
 
     // Intermediary result variable for logical and arithmetic operations.
     uint16_t op_intermediate;
@@ -210,6 +214,10 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
 
     switch (first_nibble) {
         case 0x0:
+            // Double scrolling iff in low res and modern mode scrolling is on
+            scroll_scale = chip8_quirk_flag & CHIP8_QUIRK_SUPER_LEGACY_SCROLL;
+            scroll_scale = 1 << (low_res_mode * (scroll_scale == 0));
+
             switch (instruction) {
                 // 00E0: clear display
                 case 0x00E0:
@@ -224,11 +232,12 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
 
                 // 00FB (SUPER-CHIP 1.1): Shift/move display pixels 4 right
                 case 0x00FB:
-                    for (dx = DISPLAY_RES_X - 4; dx >= 0 && dx != __UINT16_MAX__; dx--) {
+                    scroll_amount = SUPER_SCROLL_AMOUNT * scroll_scale;
+                    for (dx = DISPLAY_RES_X - scroll_amount; dx >= 0 && dx != __UINT16_MAX__; dx--) {
                         for (dy = 0; dy < DISPLAY_RES_Y; dy++) {
                             di = (dy * DISPLAY_RES_X) + dx;
-                            chip8_display[di] = chip8_display[di - 4];
-                            if (dx < 4) {
+                            chip8_display[di] = chip8_display[di - scroll_amount];
+                            if (dx < scroll_amount) {
                                 chip8_display[di] = 0;
                             }
                         }
@@ -237,12 +246,13 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
 
                 // 00FC (SUPER-CHIP 1.1): Shift/move display pixels 4 left
                 case 0x00FC:
-                    for (dx = 0; dx < DISPLAY_RES_X - 4; dx++) {
+                    scroll_amount = SUPER_SCROLL_AMOUNT * scroll_scale;
+                    for (dx = 0; dx < DISPLAY_RES_X - scroll_amount; dx++) {
                         for (dy = 0; dy < DISPLAY_RES_Y; dy++) {
                             di = (dy * DISPLAY_RES_X) + dx;
-                            chip8_display[di] = chip8_display[di + 4];
-                            if (dx + 4 >= DISPLAY_RES_X - 4) {
-                                chip8_display[di + 4] = 0;
+                            chip8_display[di] = chip8_display[di + scroll_amount];
+                            if (dx + scroll_amount >= DISPLAY_RES_X - scroll_amount) {
+                                chip8_display[di + scroll_amount] = 0;
                             }
                         }
                     }
@@ -266,13 +276,15 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 default:
                     // 00CN (SUPER-CHIP 1.1): Move display pixels N down
                     if (Y == 0xC) {
-                        for (dy = DISPLAY_RES_Y - 1; dy >= N && dy != __UINT16_MAX__; dy--) {
+                        scroll_amount = N * scroll_scale;
+                        for (dy = DISPLAY_RES_Y - 1; dy >= scroll_amount && dy != __UINT16_MAX__; dy--) {
                             for (dx = 0; dx < DISPLAY_RES_X; dx++) {
                                 di = (dy * DISPLAY_RES_X) + dx;
-                                chip8_display[di * 1] = chip8_display[(dy - N) * DISPLAY_RES_X + dx];
+                                chip8_display[di] = chip8_display[(dy - scroll_amount) * DISPLAY_RES_X + dx];
                             }
                         }
-                        memset(chip8_display, 0, DISPLAY_RES_Y * N);
+                        // Clear out the amount of rows scrolled/shifted from the top of the screen
+                        memset(chip8_display, 0, (DISPLAY_RES_X) * scroll_amount);
                     } else {
                         unrecognised = 1;
                     }
@@ -657,6 +669,7 @@ void chip8_init(void) {
 
     // Default quirks
     chip8_quirk_flag = CHIP8_QUIRK_LEGACY_MODE;
+    // chip8_quirk_flag = CHIP8_QUIRK_MODERN_MODE;
 
     // SUPER-CHIP 1.0
     low_res_mode = 1;

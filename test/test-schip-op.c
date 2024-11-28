@@ -17,6 +17,7 @@ void test_super_chip_init(void) {
     // SUPER-CHIP specific init assertions
     assert(low_res_mode == 1);
     assert(chip8_exit_flag == 0);
+    assert(chip8_quirk_flag & CHIP8_QUIRK_SUPER_LEGACY_SCROLL);
 
     for (long i = 0; i < sizeof(super_fonts); i++) {
         assert(memory[SFONT_START_ADDR + i] == super_fonts[i]);
@@ -96,7 +97,6 @@ void test_00FB_high_res(void) {
     memory[PROG_START_ADDR]     = 0x00;
     memory[PROG_START_ADDR + 1] = 0xFB;
     chip8_step(0, 0.0);
-    printf("post step\n");
     assert(chip8_display[0] == 0);
     assert(chip8_display[1] == 0);
     assert(chip8_display[2] == 0);
@@ -189,6 +189,121 @@ void test_00FC_high_res(void) {
     assert(chip8_display[DISPLAY_RES_X * 2 - 4] == 0);
 
     printf("[PASS] test_00FC_high_res\n");
+}
+
+// Test: Scrolling down with modern and legacy quirks
+void test_00CN_low_res(void) {
+    // 1. N = 1. Modern mode.
+    chip8_init();
+    low_res_mode = 1;
+    chip8_quirk_flag ^= CHIP8_QUIRK_SUPER_LEGACY_SCROLL;
+    chip8_display[0] = 1;  // top left
+    chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] = 1;  // bottom left
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xC1;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[DISPLAY_RES_X] == 0);
+    assert(chip8_display[DISPLAY_RES_X * 2] == 1);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] == 0);
+    
+    // 2. N = 1. Legacy mode
+    chip8_init();
+    low_res_mode = 1;
+    chip8_quirk_flag |= CHIP8_QUIRK_SUPER_LEGACY_SCROLL;
+    chip8_display[0] = 1;  // top left
+    chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] = 1;  // bottom left
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xC1;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[DISPLAY_RES_X] == 1);
+    assert(chip8_display[DISPLAY_RES_X * 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X * (DISPLAY_RES_Y - 1)] == 0);
+
+    printf("[PASS] test_00CN_low_res (quirk)\n");
+}
+
+// Test: Scrolling right (low res) with modern and legacy quirks
+void test_00FB_low_res(void) {
+    // 1. Modern. Move 8 super (4 regular) pixels
+    chip8_init();
+    low_res_mode = 1;
+    chip8_quirk_flag ^= CHIP8_QUIRK_SUPER_LEGACY_SCROLL;
+    chip8_display[0] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFB;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[1] == 0);
+    assert(chip8_display[2] == 0);
+    assert(chip8_display[3] == 0);
+    assert(chip8_display[4] == 0);
+    assert(chip8_display[5] == 0);
+    assert(chip8_display[6] == 0);
+    assert(chip8_display[7] == 0);
+    assert(chip8_display[8] == 1);
+    
+    // 2. Legacy. Move 4 super (2 regular) pixels
+    chip8_init();
+    low_res_mode = 1;
+    chip8_quirk_flag |= CHIP8_QUIRK_SUPER_LEGACY_SCROLL;
+    chip8_display[0] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFB;
+    chip8_step(0, 0.0);
+    assert(chip8_display[0] == 0);
+    assert(chip8_display[1] == 0);
+    assert(chip8_display[2] == 0);
+    assert(chip8_display[3] == 0);
+    assert(chip8_display[4] == 1);
+    assert(chip8_display[5] == 0);
+    assert(chip8_display[6] == 0);
+    assert(chip8_display[7] == 0);
+    assert(chip8_display[8] == 0);
+
+    printf("[PASS] test_00FB_low_res (quirk)\n");
+}
+
+// Test: Scrolling left (low res) with modern and legacy quirks
+void test_00FC_low_res(void) {
+    // 1. Modern. Move 8 super (4 regular) pixels
+    chip8_init();
+    low_res_mode = 1;
+    chip8_quirk_flag ^= CHIP8_QUIRK_SUPER_LEGACY_SCROLL;
+    chip8_display[DISPLAY_RES_X - 1] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFC;
+    chip8_step(0, 0.0);
+    assert(chip8_display[DISPLAY_RES_X - 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 4] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 5] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 6] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 7] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 8] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 9] == 1);
+    
+    // 2. Legacy. Move 4 super (2 regular) pixels
+    chip8_init();
+    low_res_mode = 1;
+    chip8_quirk_flag |= CHIP8_QUIRK_SUPER_LEGACY_SCROLL;
+    chip8_display[DISPLAY_RES_X - 1] = 1;
+    memory[PROG_START_ADDR]     = 0x00;
+    memory[PROG_START_ADDR + 1] = 0xFC;
+    chip8_step(0, 0.0);
+    assert(chip8_display[DISPLAY_RES_X - 1] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 2] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 3] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 4] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 5] == 1);
+    assert(chip8_display[DISPLAY_RES_X - 6] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 7] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 8] == 0);
+    assert(chip8_display[DISPLAY_RES_X - 9] == 0);
+
+    printf("[PASS] test_00FC_low_res (quirk)\n");
 }
 
 // Test: Exit interpreter
@@ -486,6 +601,9 @@ int main(void) {
     test_00CN_high_res();  // Scroll N pixels down/Move pixels n positions down
     test_00FB_high_res();  // Scroll 4 pixels right/Move pixels 4 positions to the right
     test_00FC_high_res();  // Scroll 4 pixels left/Move pixels 4 positions to the left
+    test_00CN_low_res();
+    test_00FB_low_res();
+    test_00FC_low_res();
     test_00FD();  // Exit interpreter
     test_00FE();  // Switch to low res mode/disable high res mode
     test_00FF();  // Switch to high res mode/enable high res mode
