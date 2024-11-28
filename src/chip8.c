@@ -203,8 +203,8 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
     uint16_t dc;  // iter col
     uint16_t di;  // buffer index
 
-    // Intermediary result variable for overflow/underflow detection
-    uint16_t arithmetic_result;
+    // Intermediary result variable for logical and arithmetic operations.
+    uint16_t op_intermediate;
 
     FILE *rpl_f;
 
@@ -322,6 +322,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             break;
 
         case 0x8:
+            // Note: Settng VF must be done last, and the use of the
+            //       `op_intermediate` is to allow for VF to be used
+            //       as VX and VY in the logical & arithmetic operations.
             switch (last_nibble) {
                 // 8XY0: set register VX = VY
                 case 0x0:
@@ -345,46 +348,55 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                 
                 // 8XY4: add V[X] = V[X] + V[Y] w/ overflow detection
                 case 0x4:
-                    V[0xF] = 0;
-                    arithmetic_result = (V[X] + V[Y]) % 256;
-                    if (V[X] > arithmetic_result) {
-                        V[0xF] ^= 1;  // overflow. flip bit
+                    op_intermediate = V[X] + V[Y];
+                    V[X] = op_intermediate % 256;
+                    if (op_intermediate > UINT8_MAX) {
+                        V[0xF] = 1;
+                    } else {
+                        V[0xF] = 0;
                     }
-                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
                 // 8XY5: subtract V[X] = V[X] - V[Y] w/ underflow detection
                 case 0x5:
-                    V[0xF] = 1;
-                    arithmetic_result = (V[X] - V[Y]) % 256;
-                    if (V[X] < arithmetic_result) {
-                        V[0xF] ^= 1;  // underflow. flip bit
+                    op_intermediate = V[X] - V[Y];
+                    V[X] = op_intermediate % 256;
+                    if (op_intermediate > UINT8_MAX) {
+                        V[0xF] = 0;
+                    } else {
+                        V[0xF] = 1;
                     }
-                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
-                // 8XY6: Right shift. VX = VX >> 1 (ambiguous VY)
+                // 8XY6: Right shift. VX = VY >> 1 (modern: VX = VX >> 1)
                 case 0x6:
-                    V[0xF] = V[X] & 0b00000001;
-                    // V[Y] = V[X]; // Ambiguous
-                    V[X] = V[X] >> 1;
+                    if (CHIP8_QUIRK_LEGACY_SHIFT & chip8_quirk_flag) {
+                        V[X] = V[Y]; // Ambiguous
+                    }
+                    op_intermediate = V[X];
+                    V[X] = op_intermediate >> 1;
+                    V[0xF] = op_intermediate & 0b00000001;
                     break;
                 
                 // 8XY7: subtract V[X] = V[Y] - V[X] w/ underflow detection
                 case 0x7:
-                    V[0xF] = 1;
-                    arithmetic_result = (V[Y] - V[X]) % 256;
-                    if (V[Y] < arithmetic_result) {
-                        V[0xF] ^= 1;  // underflow. flip bit
+                    op_intermediate = V[Y] - V[X];
+                    V[X] = op_intermediate % 256;
+                    if (op_intermediate > UINT8_MAX) {
+                        V[0xF] = 0;
+                    } else {
+                        V[0xF] = 1;
                     }
-                    V[X] = arithmetic_result;  // no AND 0xFF due to mod 256
                     break;
                 
-                // 8XYE: Left shift. VX = VX << 1 (ambiguous VY)
+                // 8XYE: Left shift. VX = VY << 1 (modern: VX = VX << 1)
                 case 0xE:
-                    V[0xF] = (V[X] & 0b10000000) >> 7;
-                    // V[Y] = V[X]; // Ambiguous
-                    V[X] = V[X] << 1;
+                    if (CHIP8_QUIRK_LEGACY_SHIFT & chip8_quirk_flag) {
+                        V[X] = V[Y]; // Ambiguous
+                    }
+                    op_intermediate = V[X];
+                    V[X] = op_intermediate << 1;
+                    V[0xF] = (op_intermediate & 0b10000000) >> 7;
                     break;
                 
                 default:
@@ -404,9 +416,14 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             I = NNN;
             break;
 
-        // BNNN: jump PC to V0 + NNN (ambiguous, modern BXNN: PC = XNN + VX)
+        // BNNN: jump PC to V0 + NNN (ambiguous, modern BXNN: PC = VX + XNN)
         case 0xB:
-            pc = V[0x0] + NNN;
+            if (CHIP8_QUIRK_LEGACY_JUMP_V0_OFFSET & chip8_quirk_flag) {
+                pc = V[0x0];
+            } else {
+                pc = V[X];
+            }
+            pc += NNN;
             break;
 
         // CXNN: store random number (ANDed with NN) in VX
@@ -451,14 +468,14 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
             switch (NN) {
                 // EX9E: skip 1 instruction if key VX is down
                 case 0x9E:
-                    if ((key_input & 0xF0) && (key_input & 0x0F) == V[X]) {
+                    if ((key_input & 0x10) && (key_input & 0x0F) == V[X]) {
                         pc += 2;
                     }
                     break;
 
                 // EXA1: skip 1 instruction if key VX is up
                 case 0xA1:
-                    if (!(key_input & 0xF0) || (key_input & 0x0F) != V[X]) {
+                    if (!(key_input & 0x10) || (key_input & 0x0F) != V[X]) {
                         pc += 2;
                     }
                     break;
@@ -497,12 +514,12 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
 
                 // FX1E: Add VX to index I
                 case 0x1E:
-                    arithmetic_result = (I + V[X]) % 0xFFF;
-                    if (arithmetic_result < I) {
+                    op_intermediate = (I + V[X]) % 0x0FFF;
+                    if (op_intermediate < I) {
                         // Amiga interpreter behaviour
                         V[0xF] = 1;
                     }
-                    I = arithmetic_result;
+                    I = op_intermediate;
                     break;
                 
                 // FX29: Font character
@@ -531,7 +548,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     for (int i = 0; i <= X; i++) {
                         memory[I + i] = V[i];
                     }
-                    // I += X + 1; // Ambiguous: old ROMS expect this
+                    if (CHIP8_QUIRK_LEGACY_REG_DUMP_I & chip8_quirk_flag) {
+                        I += X + 1; // Ambiguous: old ROMS expect this
+                    }
                     break;
                 
                 // FX65: Load first n (determined by X) register values from memory
@@ -539,7 +558,9 @@ void decode_and_exec(uint16_t instruction, uint8_t key_input) {
                     for (int i = 0; i <= X; i++) {
                         V[i] = memory[I + i];
                     }
-                    // I += X + 1;  // Ambiguous: old ROMS expect this
+                    if (CHIP8_QUIRK_LEGACY_REG_DUMP_I & chip8_quirk_flag) {
+                        I += X + 1;  // Ambiguous: old ROMS expect this
+                    }
                     break;
 
                 // FX75 (SUPER-CHIP 1.0): Store V0..VX in RPL user flags  TODO
@@ -633,6 +654,9 @@ void chip8_init(void) {
 
     chip8_display_updated = 0;
 
+    // Default quirks
+    chip8_quirk_flag = CHIP8_QUIRK_LEGACY_MODE;
+
     // SUPER-CHIP 1.0
     high_res_mode = 0;
     chip8_exit_flag = 0;
@@ -685,4 +709,88 @@ void chip8_step(uint8_t key_input, double time_sec) {
     update_timers(time_sec);
     uint16_t instruction = fetch();
     decode_and_exec(instruction, key_input);
+}
+
+void chip8_write_state() {
+    FILE *f;
+    int i;
+
+    f = fopen(CHIP8_STATE_FILE_NAME, "wb");
+    if (!f) {
+        fprintf(stderr, "chip8_write_state: Failed to open '%s'\n", CHIP8_STATE_FILE_NAME);
+        return;
+    }
+
+    // Write exposed state
+    for (i = 0; i < DISPLAY_RES_X * DISPLAY_RES_Y; i++) {
+        fwrite(&chip8_display[i], sizeof(uint8_t), 1, f);
+    }
+    // fwrite(&chip8_display_updated, sizeof(uint8_t), 1, f);
+    fwrite(&chip8_sound_off,  sizeof(uint8_t), 1, f);
+    fwrite(&chip8_exit_flag,  sizeof(uint8_t), 1, f);
+    fwrite(&chip8_quirk_flag, sizeof(uint8_t), 1, f);
+    fwrite(&chip8_next_timer_update, sizeof(double), 1, f);
+
+    // Write internal state
+    for (i = 0; i < TOTAL_MEMORY; i++) {
+        fwrite(&memory[i], sizeof(uint8_t), 1, f);
+    }
+    for (i = 0; i < NUM_GP_REGISTERS; i++) {
+        fwrite(&V[i], sizeof(uint8_t), 1, f);
+    }
+    fwrite(&pc, sizeof(uint16_t), 1, f);
+    fwrite(&I,  sizeof(uint16_t), 1, f);
+
+    for (i = 0; i < STACK_SIZE; i++) {
+        fwrite(&stack[i], sizeof(uint16_t), 1, f);
+    }
+    fwrite(&sp, sizeof(uint16_t), 1, f);
+
+    fwrite(&delay_timer, sizeof(uint8_t), 1, f);
+    fwrite(&sound_timer, sizeof(uint8_t), 1, f);
+
+    fclose(f);
+}
+
+void chip8_load_state() {
+    FILE *f;
+    int i;
+
+    f = fopen(CHIP8_STATE_FILE_NAME, "rb");
+    if (!f) {
+        fprintf(stderr, "chip8_load_state: Failed to open '%s'\n", CHIP8_STATE_FILE_NAME);
+        return;
+    }
+
+    // Read exposed state
+    for (i = 0; i < DISPLAY_RES_X * DISPLAY_RES_Y; i++) {
+        fread(&chip8_display[i], sizeof(uint8_t), 1, f);
+    }
+    // fread(&chip8_display_updated, sizeof(uint8_t), 1, f);
+    fread(&chip8_sound_off,  sizeof(uint8_t), 1, f);
+    fread(&chip8_exit_flag,  sizeof(uint8_t), 1, f);
+    fread(&chip8_quirk_flag, sizeof(uint8_t), 1, f);
+    fread(&chip8_next_timer_update, sizeof(double), 1, f);
+
+    // Read internal state
+    for (i = 0; i < TOTAL_MEMORY; i++) {
+        fread(&memory[i], sizeof(uint8_t), 1, f);
+    }
+    for (i = 0; i < NUM_GP_REGISTERS; i++) {
+        fread(&V[i], sizeof(uint8_t), 1, f);
+    }
+    fread(&pc, sizeof(uint16_t), 1, f);
+    fread(&I,  sizeof(uint16_t), 1, f);
+
+    for (i = 0; i < STACK_SIZE; i++) {
+        fread(&stack[i], sizeof(uint16_t), 1, f);
+    }
+    fread(&sp, sizeof(uint16_t), 1, f);
+
+    fread(&delay_timer, sizeof(uint8_t), 1, f);
+    fread(&sound_timer, sizeof(uint8_t), 1, f);
+
+    fclose(f);
+
+    chip8_display_updated = 1;
 }

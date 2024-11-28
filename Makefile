@@ -26,3 +26,4 @@ clean:
 	rm -f ${CHIP8_TEST_NAME}
 	rm -f ${SCHIP_TEST_NAME}
 	rm -f rpl-flags.bin
+	rm -f *state*.bin
