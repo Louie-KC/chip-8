@@ -725,7 +725,7 @@ void chip8_step(uint8_t key_input, double time_sec) {
     decode_and_exec(instruction, key_input);
 }
 
-void chip8_write_state() {
+void chip8_write_state(void) {
     FILE *f;
     int i;
 
@@ -763,10 +763,13 @@ void chip8_write_state() {
     fwrite(&delay_timer, sizeof(uint8_t), 1, f);
     fwrite(&sound_timer, sizeof(uint8_t), 1, f);
 
+    // Super chip
+    fwrite(&low_res_mode, sizeof(uint8_t), 1, f);
+
     fclose(f);
 }
 
-void chip8_load_state() {
+void chip8_load_state(void) {
     FILE *f;
     int i;
 
@@ -803,6 +806,9 @@ void chip8_load_state() {
 
     fread(&delay_timer, sizeof(uint8_t), 1, f);
     fread(&sound_timer, sizeof(uint8_t), 1, f);
+
+    // Super chip
+    fwrite(&low_res_mode, sizeof(uint8_t), 1, f);
 
     fclose(f);
 
